@@ -3,6 +3,44 @@ import mne
 
 from jumeg.jumeg_base  import jumeg_base
 
+"""
+Created on Tue Jun  2 13:38:32 2015
+
+@author: fboers
+
+---> update 23.12.2016 FB
+ --> add opt -feeg
+ --> to merge eeg BrainVision with meg in jumeg_processing_batch
+
+
+"""
+
+#################################################################
+#
+# apply_merge_meeg
+#
+#################################################################
+def apply_merge_meeg(fif_file,raw=None,eeg_fname=None,save=True,do_run=False,verbose=False):
+    """
+    fmerge brainvision eeg data into MEG-fif file
+
+    RETURN:
+           fname          : fif-file name,
+           raw            : raw obj
+
+    """
+    from jumeg.jumeg_merge_meeg import JuMEG_MergeMEEG
+
+    JMEEG = JuMEG_MergeMEEG()
+    JMEEG.meg_fname = fif_file
+    JMEEG.raw       = raw
+    JMEEG.eeg_fname = eeg_fname
+    JMEEG.do_save   = save
+    JMEEG.verbose   = verbose
+    if do_run:
+       return JMEEG.run()
+    else:
+       return raw,JMEEG.get_fif_name(raw=raw,extention=JMEEG.meeg_extention,update_raw_fname=True)
 
 #################################################################
 #
