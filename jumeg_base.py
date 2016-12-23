@@ -12,6 +12,10 @@ License: BSD 3 clause
  --> add eeg pick-cls
  --> eeg BrainVision IO support
 
+---> update 23.12.2016 FB
+ --> add opt feeg in get_filename_list_from_file
+ --> to merge eeg BrainVision with meg in jumeg_processing_batch
+
 '''
 
 import os
@@ -409,7 +413,8 @@ class JuMEG_Base_IO(JuMEG_Base_Basic,JuMEG_Base_StringHelper):
             return: list of existing files with full path and dict with bad-channels (as string e.g. A132,MEG199,MEG246)
         '''
         found_list = []
-        bads_dict  = dict()
+        # bads_dict  = dict()
+        opt_dict = dict()
 
         try:
             fh = open( fin )
@@ -421,24 +426,27 @@ class JuMEG_Base_IO(JuMEG_Base_Basic,JuMEG_Base_StringHelper):
             for line in fh :
                 line = line.rstrip()
                 bads = None
+                feeg = None
+                fname = None
                 if line :
                    if ( line[0] == '#') : continue
                    opt = line.split()
-
-                   for opi in opt[1:]:
-                       if ('--bads' in opi):
-                          _,bads = opi.split('--bads=')
-                           # print bads
-                          break
-
+                   print opt
                    if start_path :
                       if os.path.isfile( start_path + "/" + opt[0] ):
-                            found_list.append( start_path + "/" + opt[0] )
-                            bads_dict[start_path + "/" + opt[0]]= badself.raw     = Nones
-                      else :
-                          if os.path.isfile( opt[0] ):
-                             found_list.append( opt[0] )
-                             bads_dict[opt[0]]= bads
+                         fname = start_path + "/" + opt[0]
+                      else:
+                         fname = opt[0]
+                   if os.path.isfile( fname ):
+                      found_list.append(fname)
+                      opt_dict[fname]= {'bads': None, 'feeg': None}
+                      for opi in opt[1:]:
+                          if ('--bads' in opi):
+                              _,opt_dict[fname]['bads'] = opi.split('--bads=')
+                          if ('--feeg' in opi):
+                              _,opt_dict[fname]['feeg'] = opi.split('--feeg=')
+
+
         finally:           
            fh.close()
        
@@ -446,10 +454,10 @@ class JuMEG_Base_IO(JuMEG_Base_Basic,JuMEG_Base_StringHelper):
            print " --> INFO << get_filename_list_from_file >> Files found: %d" % ( len(found_list) )
            print found_list
            print "\n --> BADs: "
-           print bads_dict
+           print opt_dict
            print"\n"
 
-        return found_list,bads_dict
+        return found_list,opt_dict
 
 
     def apply_save_mne_data(self,raw,fname="test.fif",overwrite=True):
