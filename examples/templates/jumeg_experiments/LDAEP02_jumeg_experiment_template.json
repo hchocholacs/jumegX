@@ -83,7 +83,7 @@
                          "refnotch": [23.8,50.0,60.0],
                          "plot":false,
                          "verbose": false,
-                         "do_run": true,
+                         "do_run": false,
                          "save": true
                        },
 
@@ -156,7 +156,7 @@
           "fif_extention": ".fif",
           "fif_postfix": "ocarta-raw",
           "verbose": false,
-          "do_run": true,
+          "do_run": false,
           "save":true
         },
     "events": {
@@ -168,7 +168,7 @@
                        "exclude_events":{"eog_events":{"tmin":-0.4,"tmax":0.6} } },
           "fif_postfix": "evt",
           "template_name":"LDAEP",
-          "do_run": true,
+          "do_run": false,
           "verbose": false
         }},
     "brainresponse":{
