@@ -203,7 +203,8 @@ class JuMEG_MergeMEEG(JuMEG_Base_IO):
 #--- get_onset
 #----------------------------------------------------------------------------
     def get_onset(self,raw):
-        return self.get_events(raw)[0]
+        ev = self.get_events(raw)
+        return ev[0].flatten()[0]
 
 #---------------------------------------------------------------------------
 #--- get_resample_index
