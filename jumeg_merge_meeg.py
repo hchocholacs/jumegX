@@ -178,18 +178,27 @@ class JuMEG_MergeMEEG(JuMEG_Base_IO):
         print " --> call mne find events"
 
         ev = mne.find_events(raw, **self.events)
+        ev_onset = None
 
         if self.event_parameter['and_mask']:
            ev[:, 1:] = np.bitwise_and(ev[:, 1:], self.event_parameter['and_mask'])
            ev[:, 2:] = np.bitwise_and(ev[:, 2:], self.event_parameter['and_mask'])
 
         ev_onset  = np.squeeze( ev[np.where( ev[:,2] ),:])  # > 0
-        # ev_offset = np.squeeze( ev[np.where( ev[:,1] ),:])
-        ev_id_idx = np.squeeze( np.where( np.in1d( ev_onset[:,2],self.startcode )))
+       # ev_offset = np.squeeze( ev[np.where( ev[:,1] ),:])
+       #--- check  if no startcode  -> startcode not in/any  np.unique(ev[:, 2])
+        if ( self.startcode in np.unique(ev[:, 2]) ):
+           ev_id_idx = np.squeeze( np.where( np.in1d( ev_onset[:,2],self.startcode )))
+           ev_onset = np.int64( ev_onset[ ev_id_idx,:] )
+        else:
+            print"---> ERROR no startcode found %d " % (self.startcode)
+            print"---> Events: "
+            print np.unique(ev[:, 2])
+            print"\n"
+            assert"ERROR no startcode found in events"
 
-        ev_onset = ev_onset[ ev_id_idx,:]
+        return ev_onset
 
-        return np.int64( ev_onset ) #,ev_offset
 #---------------------------------------------------------------------------
 #--- get_onset
 #----------------------------------------------------------------------------
