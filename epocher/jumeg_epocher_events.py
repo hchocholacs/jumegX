@@ -82,7 +82,7 @@ class JuMEG_Epocher_Events(JuMEG_Epocher_HDF):
              raw obj,
              e.g. parameters:
               {'event_id': 40, 'and_mask': 255,
-               'events': {'consecutive': True, 'output':'steps','stim_channel': 'STI 014',
+               'events': {'consecutive': True, 'output':'step','stim_channel': 'STI 014',
                'min_duration':0.002,'shortest_event': 2,'mask': 0}
               }
 
@@ -110,7 +110,7 @@ class JuMEG_Epocher_Events(JuMEG_Epocher_HDF):
            print "ERROR in  <get_event_structure: No raw obj \n"
            return None
        #---
-        import pandas as pd
+       # import pandas as pd   done
         df = pd.DataFrame(columns = self.data_frame_stimulus_cols)
 
        #---
@@ -122,11 +122,20 @@ class JuMEG_Epocher_Events(JuMEG_Epocher_HDF):
         if param['and_mask']:
            ev[:, 1:] = np.bitwise_and(ev[:, 1:], param['and_mask'])
            ev[:, 2:] = np.bitwise_and(ev[:, 2:], param['and_mask'])
-
+      
+      #--- apply and min threshold e.g. brainvision
+        # if param['threshold']['lt']:
+      #--- apply and max threshold e.g. brainvision
+        # if param['threshold']['gt']:
+      
        #--- search and return only events with event_id in event_id-array
        #--- shape =>(trials,3)  => [trial idx ,tsl-onset/ tsl-offset,event id]
        #--- split this in onset offset
-          
+
+       # print events
+       # print "---\n\n"        
+       # print ev
+        
         ev_onset  = np.squeeze( ev[np.where( ev[:,2] ),:])  # > 0
         ev_offset = np.squeeze( ev[np.where( ev[:,1] ),:])
 
@@ -624,7 +633,7 @@ class JuMEG_Epocher_Events(JuMEG_Epocher_HDF):
                                 picks=None,reject=None,proj=False,
                                 save_condition={"events":True,"epochs":True,"evoked":True}):
         
-        from jumeg.jumeg_4raw_data_plot import jumeg_4raw_data_plot as jplt
+        from jumeg.preprocbatch.jumeg_preprocbatch_plot import jumeg_preprocbatch_plot as jplt
         jplt.verbose = self.verbose
       
         ep,bc = self.events_apply_epochs_and_baseline(self.raw,evt=evt,reject=reject,proj=proj,picks=picks)      
@@ -725,7 +734,7 @@ class JuMEG_Epocher_Events(JuMEG_Epocher_HDF):
        #--- find   response type idx
            events_idx = df[ evt['marker_type'] ][ (df['rt_type'] == rt_type_idx) & (df['bads'] != self.idx_bad) ].index
            df['selected'][events_idx] = 1
-        
+           #df.loc['selected',events_idx] = 1
        #--- apply weights to reduce/equalize number of events for all condition
            if hasattr(weights,'min_counts'):
               if weights['min_counts']:
@@ -858,9 +867,11 @@ class JuMEG_Epocher_Events(JuMEG_Epocher_HDF):
 
           for kbad in ( aev.keys() ):
               node_name = '/ocarta/' + kbad
-
-              if self.HDFobj.get(node_name) is None:
-                 continue
+            #--- ck if node exist 
+              try:             
+                  self.HDFobj.get(node_name)
+              except:
+                  continue
 
               artifact_events[kbad]= {'tmin':None,'tmax':None,'tsl':np.array([])}
 
@@ -894,18 +905,22 @@ class JuMEG_Epocher_Events(JuMEG_Epocher_HDF):
         input:
               raw obj
               evt=event dict
+              check for bad epochs due to short baseline onset/offset intervall and drop them
+              
         output:
               baseline corrected epoch data
               !!! exclude trigger channels: stim and resp !!!
               bc correction: true /false
         '''
-       
+           
+        ep_bads    = None
         ep_bc_mean = None
-        bc = False
+        bc         = False
+        
      #--- get epochs no bc correction 
         ep = mne.Epochs(self.raw,evt['events'],evt['event_id'],evt['time']['time_pre'],evt['time']['time_post'],
                         baseline=None,picks=picks,reject=reject,proj=proj,preload=True,verbose=False) # self.verbose)
-       
+            
         if ('bc' in evt.keys() ): 
           if evt['bc']['baseline']:   
              if len( evt['bc']['events'] ): 
@@ -918,34 +933,44 @@ class JuMEG_Epocher_Events(JuMEG_Epocher_HDF):
                 else:
                    bc_time_post = evt['time']['time_post']  
                 
-                picks_bc = jumeg_base.pick_exclude_trigger(ep)
+                picks_bc = jumeg_base.picks.exclude_trigger(ep)
                 
-                #ep_bc = mne.Epochs(self.raw,evt['bc']['events'],evt['bc']['event_id'],
-                #                   bc_time_pre,bc_time_post,baseline=None,
-                #                   picks=picks,reject=reject,proj=proj,preload=True,verbose=self.verbose)
+               #--- create baseline epochs -> from stimulus baseline
                 ep_bc = mne.Epochs(self.raw,evt['bc']['events'],evt['bc']['event_id'],
                                    bc_time_pre,bc_time_post,baseline=None,
                                    picks=picks_bc,reject=reject,proj=proj,preload=True,verbose=self.verbose)
              
-                ep_bc_mean = np.mean(ep_bc._data, axis = -1)
-                #print picks_bc
-             
-                ep._data[:,picks_bc,:] -= ep_bc_mean[:,:,np.newaxis]
+                
+               #--- check for equal epoch size epoch_baseline vs epoch for np bradcasting
+                ep_goods = np.intersect1d(ep_bc.selection,ep.selection)
                
-               #--- retain bc for stim/response 
-               # picks_stim = jumeg_base.pick_stim_response(ep)
-               # if picks_stim.size:
-               #    ep._data[:,picks_stim,: ] += ep_bc_mean[:,picks_stim,np.newaxis]
-                bc =True
+               #--- bad epochs & drop them
+                ep_bads  = np.array( np.where(np.in1d(ep_bc.selection,ep_goods,invert=True)) )
+                if ep_bads:
+                   ep_bc.drop(ep_bads.flatten())
+              #--- calc mean from bc epochs 
+                ep_bc_mean = np.mean(ep_bc._data, axis = -1)
+                ep._data[:,picks_bc,:] -= ep_bc_mean[:,:,np.newaxis]
+                bc = True
  #--- 
         if self.verbose:
            print" ---> Epocher apply epoch and baseline -> mne epochs:" 
            print ep
            print"      id: %d  <pre time>: %0.3f <post time>: %0.3f" % (evt['event_id'],evt['time']['time_pre'],evt['time']['time_post'])
            print" --> baseline correction : %r" %(bc)
+         
            if bc:
                 print"     done -> baseline correction"
                 print"     bc id: %d  <pre time>: %0.3f <post time>: %0.3f" % (evt['bc']['event_id'],bc_time_pre,bc_time_post)
+       
+                print"\n --> Epoch selection: "
+                print ep.selection
+                print" --> Baseline epoch selection: "
+                print ep_bc.selection
+                print"\n --> good epochs selected:"
+                print ep_goods
+                print"\n --> bad epochs & drop them:"             
+                print ep_bads
            print"\n"
        
         return ep,bc
