@@ -5,12 +5,18 @@
    author: Frank Boers   04.12.2014
 ---> update FB 23.06.2016
      adding try/exception block to check if preproc-step or template parameter not defined
-     
+---> update 23.12.2016 FB
+ --> add opt feeg in get_filename_list_from_file
+ --> to merge eeg BrainVision with meg in jumeg_processing_batch
+
+----------------------------------------------------------------
    jumeg_preprocessing_4raw_data.py -fif 109077_Chrono01_110518_1415_1_c,rfDC-raw.fif -pfif /localdata/frank/data/Chrono/mne/109077/Chrono01/110518/1415/1 -exp InKomp -v -r 
 
    jumeg_preprocessing_4raw_data.py -s /media/ext1TB/exp/LEDA/mne -exp LEDA01 -plist /media/ext1TB/exp/LEDA/doc -flist leda01.txt -v -r
 
    jumeg_preprocessing_4raw_data.py -exp InKompFibp1-45 -s /data/meg_store1/exp/Chrono/mne -plist=/data/meg_store1/exp/Chrono/doc -flist=inkomp_mne_bads.txt -v -r 
+   
+   jumeg_preprocessing_4raw_data.py -exp InKomp -pfif /home/fboers/MEGBoers/data/exp/Chrono/mne -fif 203867_Chrono01_110615_1516_1_c,rfDC,bcc,nr,ar,m1-raw.fif -v -r 
 
 """
 import sys,os, os.path
@@ -37,10 +43,7 @@ def main(argv):
 #--- set debug & test mode
     if opt.debug :
        opt.experiment = 'TEST01'
-       opt.stage      = '/localdata/frank/data/Chrono/mne'
-       #path_list       = "/localdata/frank/data/Chrono/doc"
-       #fname_list      = 'chrono_normal_inkomp.txt'
-            
+       opt.stage      = os.getenv('MY_LOCAL_DATA','.') + '/Chrono/mne'
        opt.fifname    = '201195_Chrono01_110516_1413_1_c,rfDC-raw.fif' #'201195_test.fif'  #None
        opt.pathfif    = '201195/Chrono01/110516_1413/1'  #None
        opt.verbose    = True
@@ -49,16 +52,18 @@ def main(argv):
 #---   
     if opt.verbose :
            print"\n---> ARGV parameter:"
-           print"experiment  : " + str(opt.experiment)
-           print"condition   : " + str(opt.conditions)
-           print"stage       : " + str(opt.stage)
-           print"path to fif : " + str(opt.pathfif)
-           print"fif name    : " + str(opt.fifname)
-           print"path to list: " + str(opt.pathlist)
-           print"fname list  : " + str(opt.fnamelist)
-           print"verbose     : " + str(opt.verbose)
-           print"run         : " + str(opt.run)
-           print"debug mode  : " + str(opt.debug)
+           print" --> experiment  : " + str(opt.experiment)
+           print" --> condition   : " + str(opt.conditions)
+           print" --> stage       : " + str(opt.stage)
+           print" --> stage eeg   : " + str(opt.stage_eeg)
+
+           print" --> path to fif : " + str(opt.pathfif)
+           print" --> fif name    : " + str(opt.fifname)
+           print" --> path to list: " + str(opt.pathlist)
+           print" --> fname list  : " + str(opt.fnamelist)
+           print" --> verbose     : " + str(opt.verbose)
+           print" --> run         : " + str(opt.run)
+           print" --> debug mode  : " + str(opt.debug)
            print"\n\n"  
        
 #--- update base  
@@ -93,51 +98,71 @@ def main(argv):
 
 
     #--- get existing files from list  e.g.
-    # 005/MEG94T/121219_1311/1/005_MEG94T_121219_1311_1_c,rfDC-raw.fif -nc=A1
-    # 007/MEG94T/121217_1239/1/007_MEG94T_121217_1239_1_c,rfDC-raw.fif -nc=A1,A2
+    # 005/MEG94T/121219_1311/1/005_MEG94T_121219_1311_1_c,rfDC-raw.fif -bads=A1
+    # 007/MEG94T/121217_1239/1/007_MEG94T_121217_1239_1_c,rfDC-raw.fif -bads=A1,A2
 
     fn_raw_list=[]
     fn_raw_bad_channel_dict=[]
+    opt_dict   = {}
 
     if opt.fnamelist:
-       fn_raw_list,fn_raw_bad_channel_dict = jumeg_base.get_filename_list_from_file(opt.pathlist + "/" + opt.fnamelist,start_path = opt.stage)
+       # fn_raw_list,fn_raw_bad_channel_dict = jumeg_base.get_filename_list_from_file(opt.pathlist + "/" + opt.fnamelist,start_path = opt.stage)
+       fn_raw_list,opt_dict = jumeg_base.get_filename_list_from_file(opt.pathlist + "/" + opt.fnamelist,start_path=opt.stage)
 
-   #--- check & add fif file to list update bad channel dict
+#--- check & add fif file to list update bad channel dict
     if opt.fifname:
        if opt.pathfif :
           f = opt.pathfif +"/"+ opt.fifname
-       else:
-          f = opt.fifname
+       f = opt.fifname
        if os.path.isfile(f):
           fn_raw_list.append(f)
-          if opt.bads:  #--- bad channels
-             fn_raw_bad_channel_dict[f]= opt.bads
        elif os.path.isfile(opt.stage + '/' + f):
-          fn_raw_list.append(opt.stage + '/' + f)
-          if opt.bads:
-             fn_raw_bad_channel_dict[f]= opt.bads
+            f = opt.stage + '/' + f
+            fn_raw_list.append(f)
+
+       opt_dict[f] = {'bads': None, 'feeg': None}
+
+       if opt.bads:
+             opt_dict[f]['bads'] = opt.bads
+       if opt.eeg_fname:  # --- bad channels
+             opt_dict[f]['feeg'] = opt.eeg_fname
 
 
    #--- raw obj short-cut
     tmp_pp_raw = TMP.experiment.data_preprocessing.raw
 
-   #--- brainresponse obj short-cut
-    tmp_pp_brs = TMP.experiment.data_preprocessing.brainresponse    
-
+ 
    #--- loop preproc for each fif file
     for fif_file in (fn_raw_list) :
         raw          = None  
         fif_file_raw = fif_file
+      #--- check opt / set bad channels / merge eeg
+        if ( fif_file in opt_dict ):
+            if opt_dict[fif_file]['bads']:
+                print "\n ===> Bad Channel -> " + fif_file
+                print"  --> BADs: " + str(opt_dict[fif_file]['bads'])
+                if opt_dict[fif_file]['bads']:
+                   raw, _ = jumeg_base.update_bad_channels(fif_file,raw=raw,bads=opt_dict[fif_file]['bads'])
 
-    #--- check / set bad channels
+       #--- merge eeg                                                     save=True, append=False, interpolate=True)
+            if opt_dict[fif_file]['feeg']:
+               feeg = str(opt_dict[fif_file]['feeg'])
+               print "\n ===> Merge EEG data ->"
+               print"  --> MEG      : " + fif_file
 
-        if ( fif_file in fn_raw_bad_channel_dict ):
-           print "\n ===> BAD Channel -> " + fif_file
-           print"  --> BADs: "  + str(fn_raw_bad_channel_dict[fif_file])
-           if fn_raw_bad_channel_dict[fif_file]:
-              raw,bads_dict = jumeg_base.update_bad_channels(fif_file,raw=raw,bads=fn_raw_bad_channel_dict[fif_file],save=True,append=False,interpolate=True)
-       
-    #--- epocher search for events save to HDF
+               if opt.stage_eeg:
+                   if os.path.isfile(opt.stage_eeg + '/' + feeg):
+                      feeg= opt.stage_eeg + '/' + feeg
+               if os.path.isfile(feeg):
+                  print"  --> EEG: "  + feeg
+                  raw,fif_file = jppd.apply_merge_meeg(fif_file,raw=raw,eeg_fname=feeg,save=True,do_run=opt.run,verbose=opt.verbose) #opt.run
+               else:
+                  print"!!! ERROR: no eeg file to merge with fif:"
+                  print "  --> FIF : " + fif_file_raw
+                  print "  --> EEG : " + feeg
+                  assert" No EEG file to merge"
+
+       #--- epocher search for events save to HDF
         if hasattr(tmp_pp_raw.epocher,"do_run"):
            if tmp_pp_raw.epocher.do_run :
               tmp_pp_raw.epocher['verbose'] = opt.verbose
@@ -212,21 +237,8 @@ def main(argv):
               raw   = None
         else:
            jpp_utils.msg_on_attribute_error("raw filter")
-
-    #--- average raw filtered data
-    #    if tmp_pp_raw.average.do_run :
-    #       tmp_pp_raw.average.verbose = verbose
-    #       print"\n===> PP Info: start apply averager raw"
-    #       print"File  :" + fname
-    #       if verbose:
-    #          print"Parameter :"
-    #          print tmp_pp_raw.average
-    #          print"\n\n"
-    #       jppd.apply_averager(fn_raw_list,**tmp_pp_raw.averager)
-    #       print"\n\n==> PP Info: done apply averager filterd raw data\n"
-    
-    
-    # ToDo  if ( raw.info.fname == fname ) check if has to be loaded reloaded    
+ 
+    # ToDo  if ( raw.info.fname == fname ) check if has to be reloaded    
     #--- ocarta
         if hasattr(tmp_pp_raw.ocarta,"do_run"):
            if tmp_pp_raw.ocarta.do_run :
@@ -246,7 +258,7 @@ def main(argv):
         else:
            jpp_utils.msg_on_attribute_error("raw ocarta")
   
-  # ToDo  if ( raw.info.fname == fname ) check if has to be loaded reloaded    
+  # ToDo  if ( raw.info.fname == fname ) check if has to be reloaded    
   #--- filter after ocarta    
         if hasattr(tmp_pp_raw.filter_after_ocarta,"do_run"):
            if tmp_pp_raw.filter_after_ocarta.do_run :
@@ -265,7 +277,7 @@ def main(argv):
         else:
            jpp_utils.msg_on_attribute_error("filter after ocarta")
     
-   # ToDo  if ( raw.info.fname == fname ) check if has to be loaded reloaded    
+   # ToDo  if ( raw.info.fname == fname ) check if has to be reloaded    
    #--- events
         if hasattr(tmp_pp_raw.events,"do_run"):
            if tmp_pp_raw.events.do_run :
@@ -283,8 +295,17 @@ def main(argv):
               print"\n\n"
         else:
            jpp_utils.msg_on_attribute_error("raw events")      
+  
+
+
+
+    '''  
+    # !!! under construction     
     
-    # ToDo  if ( raw.info.fname == fname ) check if has to be loaded reloaded    
+    #--- brainresponse obj short-cut
+        tmp_pp_brs = TMP.experiment.data_preprocessing.brainresponse    
+
+    # ToDo  if ( raw.info.fname == fname ) check if has to be reloaded    
     #--- brain response apply mne ica: fastica
         if hasattr(tmp_pp_brs.ica,"do_run"):
            if tmp_pp_brs.ica.do_run :
@@ -346,17 +367,13 @@ def main(argv):
         else:
            jpp_utils.msg_on_attribute_error("brain response clean")
 
-
+    '''
     print"===> Done JuMEG Pre-Processing Data"
-    print" --> FIF file input                : " + fif_file_raw
-    print" --> Information stored in HDF file: " + str(fhdf)
+    # print" --> FIF file input                : " + fif_file_raw
+    # print" --> Information stored in HDF file: " + str(fhdf)
     print"\n\n"
     raw = None
 
 
 if __name__ == "__main__":
    main(sys.argv)
-'''
-pdfjoin --a4paper --fitpaper false --rotateoversize false *.png
-pdfjoin --a4paper --fitpaper false --rotateoversize false  --landscape --outfile chrono_norm_evt.pdf *.png
-'''
