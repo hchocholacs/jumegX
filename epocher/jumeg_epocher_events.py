@@ -117,7 +117,7 @@ class JuMEG_Epocher_Events(JuMEG_Epocher_HDF):
         events           = param['events'].copy()
         events['output'] = 'step'
         ev               = mne.find_events(raw, **events) #-- return int64
-       
+
        #--- apply and mask e.g. 255 get the first 8 bits in Trigger channel
         if param['and_mask']:
            ev[:, 1:] = np.bitwise_and(ev[:, 1:], param['and_mask'])
@@ -144,11 +144,12 @@ class JuMEG_Epocher_Events(JuMEG_Epocher_HDF):
            
            #ev_onset  = np.squeeze( ev[np.where( np.in1d( ev[:,2],ev_id ) ), :])
            #ev_offset = np.squeeze( ev[np.where( np.in1d( ev[:,1],ev_id ) ), :])
-          
-           ev_id_idx = np.squeeze( np.where( np.in1d( ev_onset[:,2],ev_id )))
-           
-           ev_onset = ev_onset[ ev_id_idx,:]
-           ev_offset= ev_offset[ev_id_idx,:]  
+
+          #--- check if code in events
+           if ( ev_id in np.unique(ev[:, 2]) ):
+              ev_id_idx = np.squeeze( np.where( np.in1d( ev_onset[:,2],ev_id )))
+              ev_onset = ev_onset[ ev_id_idx,:]
+              ev_offset= ev_offset[ev_id_idx,:]
        
 
         if ( ev_onset.size == 0 ):
