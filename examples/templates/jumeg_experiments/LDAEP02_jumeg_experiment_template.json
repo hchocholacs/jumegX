@@ -61,7 +61,7 @@
         "epocher": {
           "template_name": "LDAEP",
           "fif_extention": ".fif",
-          "do_run": true,
+          "do_run": false,
           "verbose": false,
           "save": true
         },
