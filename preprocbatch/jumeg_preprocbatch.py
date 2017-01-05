@@ -22,7 +22,7 @@ Created on Tue Jun  2 13:38:32 2015
 #################################################################
 def apply_merge_meeg(fif_file,raw=None,eeg_fname=None,save=True,do_run=False,verbose=False):
     """
-    fmerge brainvision eeg data into MEG-fif file
+    merge brainvision eeg data into MEG-fif file
 
     RETURN:
            fname          : fif-file name,
@@ -32,11 +32,13 @@ def apply_merge_meeg(fif_file,raw=None,eeg_fname=None,save=True,do_run=False,ver
     from jumeg.jumeg_merge_meeg import JuMEG_MergeMEEG
 
     JMEEG = JuMEG_MergeMEEG()
-    JMEEG.meg_fname = fif_file
-    JMEEG.raw       = raw
-    JMEEG.eeg_fname = eeg_fname
+    JMEEG.meg.filename = fif_file
+    JMEEG.meg.raw      = raw
+    JMEEG.eeg.filename = eeg_fname
+
     JMEEG.do_save   = save
     JMEEG.verbose   = verbose
+
     if do_run:
        return JMEEG.run()
     else:

@@ -35,8 +35,10 @@ def get_args():
       jumeg_preprocessing_batch.py -exp InKompFibp1-45 -s /data/meg_store1/exp/Chrono/mne -plist=/data/meg_store1/exp/Chrono/doc -flist=inkomp_mne_bads.txt -v -r
 
      ---> process fif file list for experiment LDAEP02
-      jumeg_preprocessing_batch.py -exp LDAEP02 -s /home/fboers/MEGBoers/data/exp/LDAEP/mne -plist=/home/fboers/MEGBoers/data/exp/LDAEP/doc -flist=LDAEO02_mne_eeg_bads.txt -v -r
-                                                    -seeg /home/fboers/MEGBoers/data/exp/LDAEP/eeg/LDAEP02/
+      jumeg_preprocessing_batch.py -exp LDAEP02 -s /home/fboers/MEGBoers/data/exp/LDAEP/mne -plist=/home/fboers/MEGBoers/data/exp/LDAEP/doc
+                                   -flist=LDAEP02_mne_eeg_bads.txt
+                                   -seeg /home/fboers/MEGBoers/data/exp/LDAEP/eeg/LDAEP02/
+                                   -v -r
 
       list file e.g.
        203414/LDAEP02/130409_1034/1/203414_LDAEP02_130409_1034_1_c,rfDC-raw.fif --feeg=204265_LDAEP02_2.vhdr --bads=A63,A217
