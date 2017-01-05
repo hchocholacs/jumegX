@@ -1,3 +1,5 @@
+# -*- coding: utf-8 -*-
+
 '''
 JuMEG Base Class to provide wrapper & helper functions
 
@@ -16,11 +18,16 @@ License: BSD 3 clause
  --> add opt feeg in get_filename_list_from_file
  --> to merge eeg BrainVision with meg in jumeg_processing_batch
 
+---> update 04.01.2017 FB
+ --> add neww CLS JuMEG_Base_FIF_IO
+ --> to merge eeg BrainVision with meg in jumeg_processing_batch
+
 '''
 
 import os
 import mne
 
+'''
 class AccessorType(type):
     """
     meta class example
@@ -43,6 +50,7 @@ class AccessorType(type):
 
             setattr(self, name, property(getter, setter, deler, ""))
 
+'''
 
 class JuMEG_Base_Basic(object):
     def __init__ (self):
@@ -256,8 +264,84 @@ class JuMEG_Base_StringHelper(object):
            return anr[ np.where(anr) ] 
         return anr
 
+class JuMEG_Base_FIF_IO(JuMEG_Base_Basic,JuMEG_Base_StringHelper):
+    def __init__ (self):
+        super(JuMEG_Base_FIF_IO, self).__init__()
 
-class JuMEG_Base_IO(JuMEG_Base_Basic,JuMEG_Base_StringHelper):
+    def __get_from_fifname(self,v=None,f=None):
+        if f:
+           fname=f
+        else:
+           fname=self.raw.info['filename']
+        try:
+           return os.path.basename(fname).split('_')[v]
+        except:
+           return os.path.basename(fname)
+
+
+    def get_id(self,v=0,f=None):
+        return self.__get_from_fifname(v=v,f=f)
+
+    def get_scan(self,v=1,f=None):
+        return self.__get_from_fifname(v=v,f=f)
+
+    def get_session(self,v=2,f=None):
+        return self.__get_from_fifname(v=v,f=f)
+
+    def get_run(self,v=3,f=None):
+        return self.__get_from_fifname(v=v,f=f)
+
+    def get_postfix(self,f=None):
+        return os.path.basename(self.raw.info['filename']).split('_')[-1].split('.')[0]
+
+    def get_extention(self,f=None):
+        if f:
+            fname = f
+        else:
+            fname = self.raw.info['filename']
+        return os.path.basename(fname).split('_')[-1].split('.')[-1]
+
+    def get_postfix_extention(self,f=None):
+        if f:
+            fname = f
+        else:
+            fname = self.raw.info['filename']
+        return os.path.basename(fname).split('_')[-1]
+
+    def get_fif_name(self, fname=None, raw=None, postfix=None, extention="-raw.fif", update_raw_fname=False):
+        """
+        Returns fif filename
+        based on input file name and applied operation
+
+        Parameters
+        ----------
+        fname      : base file name
+        raw              = <raw obj>     : if defined get filename from raw obj
+        update_raw_fname = <False/True>  : if true and raw is obj will update raw obj filename in place
+        postfix          = <my postfix>  : string to add for applied operation [None]
+        extention        = <my extention>: string to add as extention  [raw.fif]
+
+        """
+        if raw:
+           fname = raw.info.get('filename')
+        try:
+            p, pdf = os.path.split(fname)
+            fname = p + "/" + pdf[:pdf.rfind('-')]
+            if postfix:
+               fname += "," + postfix
+               fname = fname.replace(',-', '-')
+
+            if raw and update_raw_fname:
+               raw.info['filename'] = fname
+               if extention:
+                  raw.info['filename'] += extention
+                  return fname + extention
+        except:
+            return False
+
+        return fname
+
+class JuMEG_Base_IO(JuMEG_Base_FIF_IO):
     def __init__ (self):
         super(JuMEG_Base_IO, self).__init__()
         
@@ -268,6 +352,8 @@ class JuMEG_Base_IO(JuMEG_Base_Basic,JuMEG_Base_StringHelper):
       #--- ToDo --- start implementig BV support may new CLS
         self.brainvision_response_shift = 256
         self.brainvision_extention      = '.vhdr'
+
+
 
     def update_bad_channels(self,fname,raw=None,bads=None,preload=True,append=False,save=False,interpolate=False):
         """
@@ -283,12 +369,9 @@ class JuMEG_Base_IO(JuMEG_Base_Basic,JuMEG_Base_StringHelper):
         """
          #TODO: if  new bads ==  old bads in raw then  exit
 
-        if raw is None:
-           if fname is None:
-              assert "---> ERROR no file foumd!!\n\n"
-           if save:
-              preload = True
-           raw = mne.io.Raw(fname,preload=preload)
+        if save:
+           preload = True
+        raw,fname = self.get_raw_obj(fname,raw=raw,preload=preload)
 
         if not append:
            raw.info['bads']=[]
@@ -322,7 +405,7 @@ class JuMEG_Base_IO(JuMEG_Base_Basic,JuMEG_Base_StringHelper):
         if save:
            raw.save(raw.info['filename'],overwrite=True)
 
-        if ( interpolate  and raw.info['bads'] ) :
+        if ( interpolate and raw.info['bads'] ) :
            print " --> Update BAD channels => interpolating: " + raw.info['filename']
            print " --> BADs : " 
            print raw.info['bads'] 
@@ -353,7 +436,7 @@ class JuMEG_Base_IO(JuMEG_Base_Basic,JuMEG_Base_StringHelper):
    
            return ica_raw,raw_ica.info['filename']
             
-    def get_raw_obj(self,fname_raw,raw=None,path=None):
+    def get_raw_obj(self,fname_raw,raw=None,path=None,preload=True):
         ''' 
            check for filename or raw obj
            chek for meg or brainvision eeg data *.vhdr
@@ -364,21 +447,19 @@ class JuMEG_Base_IO(JuMEG_Base_Basic,JuMEG_Base_StringHelper):
         '''
 
         if raw is None:
-           if fname_raw is None:
-              assert"---> ERROR no file foumd!!\n"
+           assert(fname_raw),"---> ERROR no file foumd!!\n"
            if self.verbose:
               print "<<<< Reading raw data ..."
            fn = fname_raw
            if path:
               fn = path+"/"+fname_raw
            if ( fn.endswith(self.brainvision_extention) ):
-               raw = mne.io.read_raw_brainvision(fn,response_trig_shift=self.brainvision_response_shift,preload=True)
+               raw = mne.io.read_raw_brainvision(fn,response_trig_shift=self.brainvision_response_shift,preload=preload)
                raw.info['bads'] = []
            else:
-               raw = mne.io.Raw(fn,preload=True)
+               raw = mne.io.Raw(fn,preload=preload)
          
-        if raw is None:
-           assert "---> ERROR in jumeg.jumeg_base.get_raw_obj => could not get raw obj:\n ---> FIF name: " + fname_raw   
+        assert(raw), "---> ERROR in jumeg.jumeg_base.get_raw_obj => could not get raw obj:\n ---> FIF name: " + fname_raw
    
         return raw,raw.info['filename'] 
 
@@ -526,51 +607,26 @@ class JuMEG_Base_IO(JuMEG_Base_Basic,JuMEG_Base_StringHelper):
            return( fname_empty_room, mne.io.Raw(fname_empty_room, preload=True) )
         
 
-    def get_fif_name(self,fname=None,raw=None,postfix=None,extention="-raw.fif",update_raw_fname=False):
-        """ 
-        Returns fif filename
-        based on input file name and applied operation
 
-        Parameters
-        ----------
-        fname      : base file name
-        raw              = <raw obj>     : if defined get filename from raw obj
-        update_raw_fname = <False/True>  : if true and raw is obj will update raw obj filename in place
-        postfix          = <my postfix>  : string to add for applied operation [None]
-        extention        = <my extention>: string to add as extention  [raw.fif]
-       
-        """
-        #
-        # fname = ( fname.split('-')[0] ).strip('.fif')
-        
-        if raw:
-           fname = raw.info.get('filename')
-           
-        p,pdf = os.path.split(fname) 
-        fname = p +"/" + pdf[:pdf.rfind('-')]
-        if postfix:
-           fname += "," + postfix
-           fname  = fname.replace(',-','-')
-       
-        if raw and update_raw_fname:
-            raw.info['filename'] = fname
-            if extention:
-               raw.info['filename'] += extention
-               return fname + extention
 
-        return fname
+#---
+jumeg_base       = JuMEG_Base_IO()
+jumeg_base_basic = JuMEG_Base_Basic()
+
+
+"""
 
 
 class JuMEG_Base_FIFIO(JuMEG_Base_IO):
-    '''
+   '''
        support for good old 4D file structure on harddisk
        => id scan session run postfix extention
         0007_ODDBall_190101_1200_1_c,rfDC-raw.fif
-        
+
         set parameter:
         start_path = '.'
         experiment = 'nn'
-        type       = 'mne' ['mne' or 'eeg'] folder 
+        type       = 'mne' ['mne' or 'eeg'] folder
 
         id        = '007'
         scan      = 'TEST'
@@ -584,7 +640,7 @@ class JuMEG_Base_FIFIO(JuMEG_Base_IO):
         super(JuMEG_Base_FIFIO, self).__init__()
         self.__version__  = 20160623
         self.verbose      = False
-       
+
         self.start_path = '.'
         self.experiment = 'nn'
         self.type       = 'mne'
@@ -603,7 +659,7 @@ class JuMEG_Base_FIFIO(JuMEG_Base_IO):
         if self.scan:
            l.append(self.scan)
         if self.session:
-           l.append(self.session)     
+           l.append(self.session)
         if self.run:
            l.append(self.run)
         return l
@@ -616,11 +672,11 @@ class JuMEG_Base_FIFIO(JuMEG_Base_IO):
         return os.sep.join( self.__ck_pdfs() )
         # return self.id + os.sep + self.scan + os.sep + self.session + os.sep + self.run + os.sep
     pfif = property(__get_pfif)
-  
+
     def __get_full_path(self):
         return self.type_path + os.sep + self.pfif
     path = property(__get_full_path)
- 
+
     def __get_name(self):
         l = self.__ck_pdfs()
         if self.postfix:
@@ -630,7 +686,7 @@ class JuMEG_Base_FIFIO(JuMEG_Base_IO):
         return '_'.join(l)
         # return self.id + '_' + self.scan +'_'+ self.session +'_'+ self.run +'_'+ self.postfix + self.extention
     name = property(__get_name)
- 
+
     def __get_full_name(self):
         return self.type_path + os.sep + self.pfif  +os.sep + self.name
     full_name = property(__get_full_name)
@@ -673,6 +729,4 @@ class JuMEG_Base_BrainVisionIO(JuMEG_Base_FIFIO):
     full_name = property(__get_full_name)
 
 
-#---
-jumeg_base       = JuMEG_Base_IO()
-jumeg_base_basic = JuMEG_Base_Basic()
+"""
