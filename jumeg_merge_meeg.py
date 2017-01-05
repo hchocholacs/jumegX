@@ -30,7 +30,9 @@ example  via function call
 import jumeg.jumeg_merge_meeg
 jumeg_merge_meeg(meg_fname= my_meg_fname.fif, eeg_fname = my_eeg_fname.vhdr)
 
----> update 22.12.2016 FB
+---> update 05.01.2017 FB
+     add cls for meg/eeg data
+     error checking
 
 '''
 
@@ -41,6 +43,80 @@ import mne
 
 from jumeg.jumeg_base                   import JuMEG_Base_IO
 from jumeg.filter.jumeg_filter          import jumeg_filter
+
+class JuMEG_MergeMEEG_HiLoRate(object):
+      def __init__(self, system='MEG'):
+          super(JuMEG_MergeMEEG_HiLoRate,self).__init__()
+          self.path     = None
+          self.name     = None
+          self.filename = None
+          self.raw      = None
+          self.system   = system
+
+          self.data          = np.array([])
+          self.times         = np.array([])
+          self.ev_onsets     = np.array([])
+          self.tsl_resamples = np.array([],dtype=np.int64)
+          self.tsl_onset     = None
+          self.time_delta    = None
+          self.picks         = None
+          self.is_data_size_adjusted = False
+
+      def check_path(self):
+          print " --> " + self.system + " file name: " + str(self.filename)
+          assert( os.path.isfile( self.filename ) ),"---> ERROR " + self.system +" file: no such file: " + str(self.filename)
+          return True
+
+      def __get_time_onset(self):
+          return self.raw.times[self.tsl_onset]
+      time_onset = property(__get_time_onset)
+
+      def __get_time_end(self):
+          return self.raw.times[-1]
+      time_end = property(__get_time_end)
+
+      def __get_time_duration(self):
+          return self.raw.times[self.raw.last_samp - self.tsl_onset]
+      time_duration = property(__get_time_duration)
+
+      def __get_tsl_end(self):
+          return self.tsl_onset + self.times.shape[0]
+      tsl_end = property(__get_tsl_end)
+
+      def init_times(self,time_duration=None):
+
+          if time_duration:
+             dtsl = np.int64( self.raw.time_as_index( time_duration ) )
+          else:
+             dtsl = np.int64( self.raw.time_as_index( self.time_duration ) )
+
+          self.times = np.zeros(dtsl)
+          dtsl      += self.tsl_onset
+          if (dtsl > self.raw.last_samp):
+              dtsl = None # include last idx
+          self.times[:]= self.raw.times[self.tsl_onset:dtsl]
+          self.times  -= self.times[0]  # start time _onsetseq at zero
+
+          # self.meg.tsl_end = self.meg.tsl_onset + self.eeg.tsl_resamples.shape[0]
+      def time_info(self,channel_info=False):
+          print"\n " + "-" * 50
+          print" --> " + self.system
+          print"  -> Time start: %12.3f end: %12.3f delta: %12.3f" % (self.time_onset,self.time_end,self.time_duration)
+          print"  -> TSL  start: %12.3f end: %12.3f" % (self.tsl_onset,self.raw.last_samp)
+          print" " + "-" * 50
+
+          if ( channel_info ):
+             print"  -> channel info: "
+             print"  ->  names      : " + ",".join([self.raw.ch_names[i] for i in self.picks])
+             print"  ->  index      : " + str(self.picks)
+             print" -->  resamples  : %d" % (self.tsl_resamples.shape[0])
+             print" " + "-" * 50
+
+      def adjust_data_size(self):
+          self.raw._data = self.raw._data[:, self.tsl_onset:self.tsl_end]  #+1
+          self.is_data_size_adjusted = True
+
+
 
 
 class JuMEG_MergeMEEG(JuMEG_Base_IO):
@@ -92,25 +168,18 @@ class JuMEG_MergeMEEG(JuMEG_Base_IO):
 
         self.__version__= '2016.12.24.001'
 
-        self.meg_path  = None
-        self.meg_name  = None
-        self.meg_fname = None
-        self.raw       = None
-
-        self.eeg_path   = None
-        self.eeg_name   = None
-        self.eeg_fname  = None
-        self.eeg_raw    = None
-
-        self.meeg_extention =  ",eeg-raw.fif"
+        self.meg = JuMEG_MergeMEEG_HiLoRate(system='MEG')
+        self.eeg = JuMEG_MergeMEEG_HiLoRate(system='EEG')
 
         self.brainvision_response_shift = 256 # to mark response bits to higher 8bit in STI channel
 
-        self.meeg_fname = None
+       #--- output
+        self.meeg_fname     = None
+        self.meeg_extention = ",eeg-raw.fif"
 
        #--- change channel names and group
-        self.channel_types = {'EEG 001': u'ecg', 'EEG 002': u'eog', 'EEG 003': u'eog'}
-        self.channel_names = {'EEG 001': u'ECG 001', 'EEG 002': u'EOG hor', 'EEG 003': u'EOG ver'}
+       # self.channel_types = {'EEG 001': u'ecg', 'EEG 002': u'eog', 'EEG 003': u'eog'}
+       # self.channel_names = {'EEG 001': u'ECG 001', 'EEG 002': u'EOG hor', 'EEG 003': u'EOG ver'}
 
 
       #--- filter obj
@@ -120,7 +189,7 @@ class JuMEG_MergeMEEG(JuMEG_Base_IO):
         self.events          = {'consecutive': True, 'output': 'step', 'stim_channel': 'STI 014','min_duration': 0.00001, 'shortest_event': 1, 'mask': 0}
 
         self.verbose        = False
-        self.do_adjust_size = adjust_size
+        self.do_adjust_data_size = adjust_size
         self.do_save        = save
         self.do_filter_meg  = True
         self.do_filter_eeg  = True
@@ -139,57 +208,67 @@ class JuMEG_MergeMEEG(JuMEG_Base_IO):
     stim_channel = property(___get_ev_stim_channel, ___set_ev_stim_channel)
 
 # ---------------------------------------------------------------------------
-# --- check_filter_parameter
+# --- check_data
+# ----------------------------------------------------------------------------
+    def check_ids(self):
+        im= self.get_id(f=self.meg.filename)
+        ie= self.get_id(f=self.eeg.filename)
+        assert(set( im.split() ) == set( ie.split() ) ), "ERROR -> check IDs: MEG: " + str(im) +" EEG: " + str(ie)
+        return True
+
+# ---------------------------------------------------------------------------
+# --- check_filter_parameterself.get_id(f=self.meg.filename)
 # ----------------------------------------------------------------------------
     def check_filter_parameter(self):
 
-        if self.raw.info['sfreq'] > self.eeg_raw.info['sfreq']:
-           assert "Warning EEG data sampling fequency %4.3f is lower than MEG data %4.3f " % (self.eeg_raw.info['sfreq'], self.raw.info['sfreq'])
+        if self.meg.raw.info['sfreq'] > self.eeg.raw.info['sfreq']:
+           assert "Warning EEG data sampling fequency %4.3f is lower than MEG data %4.3f " % (self.eeg.raw.info['sfreq'], self.meg.raw.info['sfreq'])
            return False
-        return self.filter.calc_lowpass_value( self.raw.info['sfreq'] )
+        return self.filter.calc_lowpass_value( self.meg.raw.info['sfreq'] )
 
 #---------------------------------------------------------------------------
 # --- apply_filter_meg_eeg
 # ----------------------------------------------------------------------------
-    def apply_filter_meg_eeg(self,meg_picks=None,eeg_picks=None):
+    def apply_filter_meg_eeg(self):
        '''
           inplace filter all meg and eeg data except trigger channel with  lp
         '''
       # --- meg
        if self.do_filter_meg:
           print "---> Start filter meg data"
-          self.filter.sampling_frequency = self.raw.info['sfreq']
+          self.filter.sampling_frequency = self.meg.raw.info['sfreq']
           self.filter.fcut1 = self.check_filter_parameter()
           print " --> filter info: " + self.filter.filter_info
-          self.filter.apply_filter(self.raw._data, picks=meg_picks)
-
+          self.filter.apply_filter(self.meg.raw._data, picks=self.meg.picks)
+          print " --> Done filter meg"
       # ---  bv eeg
        if self.do_filter_eeg:
           print "---> Start filter bv eeg data"
-          self.filter.sampling_frequency = self.eeg_raw.info['sfreq']
+          self.filter.sampling_frequency = self.eeg.raw.info['sfreq']
           print " --> filter info: " + self.filter.filter_info
-          self.filter.apply_filter(self.eeg_raw._data, picks=eeg_picks)
-          print " --> Done filter data with lp: %4.3f Hz" %( self.filter.fcut1 )
+          self.filter.apply_filter(self.eeg.raw._data, picks=self.eeg.picks)
+          print " --> Done filter eeg"
 
 # ---------------------------------------------------------------------------
-# --- get_events
+# --- get_onset_and_events
 # ----------------------------------------------------------------------------
-    def get_events(self,raw):
+    def get_onset_and_events(self,raw):
         print " --> call mne find events"
+        ev_start_code_onset_idx = None
 
         ev = mne.find_events(raw, **self.events)
-        ev_onset = None
 
         if self.event_parameter['and_mask']:
            ev[:, 1:] = np.bitwise_and(ev[:, 1:], self.event_parameter['and_mask'])
            ev[:, 2:] = np.bitwise_and(ev[:, 2:], self.event_parameter['and_mask'])
 
-        ev_onset  = np.squeeze( ev[np.where( ev[:,2] ),:])  # > 0
+        ev_onsets  = np.squeeze( ev[np.where( ev[:,2] ),:])  # > 0
+
        # ev_offset = np.squeeze( ev[np.where( ev[:,1] ),:])
        #--- check  if no startcode  -> startcode not in/any  np.unique(ev[:, 2])
         if ( self.startcode in np.unique(ev[:, 2]) ):
-           ev_id_idx = np.squeeze( np.where( np.in1d( ev_onset[:,2],self.startcode )))
-           ev_onset = np.int64( ev_onset[ ev_id_idx,:] )
+           ev_id_idx = np.squeeze( np.where( np.in1d( ev_onsets[:,2],self.startcode )))
+           ev_start_code_onset_idx =  np.int64( ev_onsets[ ev_id_idx,:] )[0].flatten()[0]
         else:
             print"---> ERROR no startcode found %d " % (self.startcode)
             print"---> Events: "
@@ -197,14 +276,7 @@ class JuMEG_MergeMEEG(JuMEG_Base_IO):
             print"\n"
             assert"ERROR no startcode found in events"
 
-        return ev_onset
-
-#---------------------------------------------------------------------------
-#--- get_onset
-#----------------------------------------------------------------------------
-    def get_onset(self,raw):
-        ev = self.get_events(raw)
-        return ev[0].flatten()[0]
+        return ev_start_code_onset_idx,ev_onsets
 
 #---------------------------------------------------------------------------
 #--- get_resample_index
@@ -227,7 +299,7 @@ class JuMEG_MergeMEEG(JuMEG_Base_IO):
         '''
         import numpy as np
        #---ToDo implementation in C for speed
-        eps_limit = round((0.90 / sfreq_high), 3) # distance  beween timepoints high/low
+        eps_limit  = round((0.90 / sfreq_high), 6) # distance  beween timepoints high/low  us
         resamp_idx = np.zeros( timepoints_low_srate.shape[0],dtype=np.int64 )
         j = 0
         idx=0
@@ -239,126 +311,127 @@ class JuMEG_MergeMEEG(JuMEG_Base_IO):
 
         return resamp_idx
 
- #----------------------------------------------------------------------------
- #--- run
- #----------------------------------------------------------------------------
+# ----------------------------------------------------------------------------
+# --- check_data_drift
+# ----------------------------------------------------------------------------
+    def check_data_drift(self):
+        '''  check data drift: if last common meg/eeg event code onset is in time resolution uncertainty
+             dt < 2 x meg sampling periode
+        '''
+        meg_dtmax  = self.meg.raw.times[ self.meg.ev_onsets[-1,0] ] - self.meg.raw.times[ self.meg.ev_onsets[0,0] ]
+        eeg_dtmax  = self.eeg.raw.times[ self.eeg.ev_onsets[-1, 0]] - self.eeg.raw.times[ self.eeg.ev_onsets[0,0] ]
+        dif = np.abs(meg_dtmax - eeg_dtmax)
+
+        if self.verbose:
+           print" --> check data drift:"
+           print"     MEG last event onset: %0.6f" % (meg_dtmax)
+           print"     EEG last event onset: %0.6f" % (eeg_dtmax)
+           print"     dt [ms]             : %0.6f" % (dif)
+           print"     meg sampling periode [ms]: %0.6f" % (1000.0 / self.meg.raw.info['sfreq'])
+           print" " + "-" * 50
+
+        if ( dif > 2000.0 / self.meg.raw.info['sfreq'] ):
+           assert('ERROR Data Drift ->last common meg/eeg event-code-onset is not in time resolution uncertainty')
+
+        return dif
+
+       #-- example stuff
+       #  dt_meg    = tmeg - np.roll(tmeg, 1)
+       #  dt_meg[0] = 0.0
+       #  dt_eeg    = teeg - np.roll(teeg, 1)
+       #  dt_eeg[0] = 0.0
+       #  plt.plot( dt/dt_eeg )
+       # mne.viz.plot_events(self.meg.ev_onsets, self.meg.raw.info['sfreq'],
+       #                      self.meg.tsl_onset)  # color=color,event_id=event_id)
+
+#----------------------------------------------------------------------------
+#--- run
+#----------------------------------------------------------------------------
     def run(self):
+        """
+            merge brainvision eeg data into MEG-fif file
 
-        meg_data  = np.array([])
-        meg_times = np.array([])
-        eeg_data  = np.array([])
+            RETURN:
+                   fname          : fif-file name,
+                   raw            : raw obj
 
-        print "---> Start JuMEG BrainVision Merger"
-        print " --> MEG FIF name: " + self.meg_fname
-        if (not os.path.isfile( self.meg_fname ) ):
-           print "---> ERROR MEG file: no such file: " + self.meg_fname
-           return
+        """
+        delta_time = None
 
-        print " --> EEG BV  name: " + self.eeg_fname
-        if (not os.path.isfile( self.eeg_fname ) ):
-           print "---> ERROR EEG file: no such file: " +self.eeg_fname
-           return
+        self.meg.check_path()
+        self.eeg.check_path()
+        self.check_ids()
 
-       #--- load BV eeg
+        #--- load BV eeg
         print"\n " + "-" * 50
-        print " --> load EEG BrainVision data: " + self.eeg_fname
-        self.eeg_raw,_ = self.get_raw_obj(self.eeg_fname)
+        print " --> load EEG BrainVision data: " + self.eeg.filename
+        self.eeg.raw,_ = self.get_raw_obj(self.eeg.filename)
        #--- get start code onset
-        eeg_onset_tsl = self.get_onset(self.eeg_raw)
+        self.eeg.tsl_onset,self.eeg.ev_onsets = self.get_onset_and_events(self.eeg.raw)
        # --- get ECG & EOG picks
-        eeg_picks = self.picks.eeg(self.eeg_raw)
+        self.eeg.picks = self.picks.eeg(self.eeg.raw)
 
        # --- load meg
         print"\n " + "-" * 50
-        print " --> load MEG data:             " + self.meg_fname
-        self.raw, _   = self.get_raw_obj(self.meg_fname)
+        print " --> load MEG data:             " + self.meg.filename
+        self.meg.raw, _   = self.get_raw_obj(self.meg.filename)
        # --- start code onset
-        meg_onset_tsl = self.get_onset(self.raw)
+        self.meg.tsl_onset,self.meg.ev_onsets = self.get_onset_and_events(self.meg.raw)
        # --- get MEG & Ref picks
-        meg_picks = self.picks.exclude_trigger(self.raw)
-
-       #--- cal tsl onset; common  tsl range
-        eeg_onset_time    = self.eeg_raw.times[eeg_onset_tsl]
-        eeg_end_time      = self.eeg_raw.times[self.eeg_raw.last_samp]
-        eeg_duration_time = self.eeg_raw.times[self.eeg_raw.n_times - eeg_onset_tsl]
-
-        meg_onset_time   = self.raw.times[meg_onset_tsl]
-        meg_end_time     = self.raw.times[self.raw.last_samp]
-        meg_duration_time= self.raw.times[self.raw.n_times - meg_onset_tsl]
+        self.meg.picks = self.picks.exclude_trigger(self.meg.raw)
 
        #--- adjust data length
-        if (eeg_duration_time < meg_duration_time):
-            delta_time = eeg_duration_time  #  self.eeg_raw.times[self.eeg_raw.last_samp]
+       # meg longer or shorter than eeg
+        if (self.eeg.time_duration < self.meg.time_duration):
+            self.meg.init_times(time_duration=self.eeg.time_duration)
+            self.eeg.init_times(time_duration=self.eeg.time_duration)
         else:
-            delta_time = meg_duration_time
-
-        meg_end_tsl = np.int64( self.raw.time_as_index( delta_time ) + meg_onset_tsl )
-        if ( meg_end_tsl > self.raw.last_samp ) :
-             meg_end_tsl = self.raw.last_samp
-             # delta_time  = self.raw.times[meg_end_tsl - meg_onset_tsl]
-
-        meg_times    = np.zeros(meg_end_tsl - meg_onset_tsl + 1)
-        meg_times[:] = self.raw.times[ meg_onset_tsl:meg_end_tsl+1 ]
-        meg_times   -= meg_times[0] #  start time seq at zero
-
-        eeg_times    = np.zeros(self.eeg_raw.n_times - eeg_onset_tsl)
-        eeg_times[:] = self.eeg_raw.times[eeg_onset_tsl:] # copy times
-        eeg_times   -= eeg_times[0] #  start time seq at zero
+            self.meg.init_times(time_duration=self.meg.time_duration)
+            self.eeg.init_times(time_duration=self.meg.time_duration)
 
       #--- cp index tp form bv to meg-cannels
-        eeg_resample_idx = self.get_resample_index(timepoints_high_srate=eeg_times,timepoints_low_srate=meg_times,sfreq_high=self.eeg_raw.info['sfreq'])
-        eeg_resample_idx += eeg_onset_tsl # shift index-values in array to onset
+        self.eeg.tsl_resamples  = self.get_resample_index(timepoints_high_srate=self.eeg.times,timepoints_low_srate=self.meg.times,sfreq_high=self.eeg.raw.info['sfreq'])
+        self.eeg.tsl_resamples += self.eeg.tsl_onset # shift index-values in array to onset
 
-        print"\n " + "-" * 50
-        print" --> MEG Time start: %12.3f end: %12.3f delta: %12.3f" % (meg_onset_time, meg_end_time, meg_duration_time)
-        print" --> MEG TSL  start: %12.3f end: %12.3f" % (meg_onset_tsl, self.raw.last_samp)
-        print" " + "-" * 50
-        print" --> EEG Time start: %12.3f end: %12.3f delta: %12.3f" % (eeg_onset_time, eeg_end_time, eeg_duration_time)
-        print" --> EEG TSL  start: %12.3f end: %12.3f" % (eeg_onset_tsl, self.eeg_raw.last_samp)
-        print" --> EEG use channels : " + ",".join([self.eeg_raw.ch_names[i] for i in eeg_picks])
-        print" --> EEG index        : " + str(eeg_picks)
-        print" " + "-" * 50
-        print" --> resample idx %d" % (eeg_resample_idx.shape[0])
+        self.meg.time_info(channel_info=False)
+        self.eeg.time_info(channel_info=True)
+        self.check_data_drift()
 
-        meg_end_tsl = meg_onset_tsl + eeg_resample_idx.shape[0]
-
-        print" --> used MEG data range [tsl] -> onset: %d offset: %d  delta: %d" % ( meg_onset_tsl, meg_end_tsl, meg_end_tsl - meg_onset_tsl)
-
-       # --- filter meg / eeg data; no trigger
-        self.apply_filter_meg_eeg(meg_picks=meg_picks,eeg_picks=eeg_picks)
+      # --- filter meg / eeg data; no trigger
+        self.apply_filter_meg_eeg()
 
        #--- downsampe & merge
        #--- ToDo check if EEG channel in raw exist or add channel
         meg_ch_idx = 1
         eeg_idx    = 0
 
-        for ch in ( self.eeg_raw.ch_names ):  # ECG EOG_hor EOG_ver
+        for ch in ( self.eeg.raw.ch_names ):  # ECG EOG_hor EOG_ver
             if ch.startswith('E'):
-               eeg_idx = self.eeg_raw.ch_names.index(ch)
+               eeg_idx = self.eeg.raw.ch_names.index(ch)
                chname  = "EEG %03d" %(meg_ch_idx)
               #--- copy eeg downsapled data into raw
-               self.raw._data[self.raw.ch_names.index(chname), meg_onset_tsl:meg_end_tsl + 1] = self.eeg_raw._data[eeg_idx, eeg_resample_idx]
+               self.meg.raw._data[self.meg.raw.ch_names.index(chname), self.meg.tsl_onset:self.meg.tsl_end] = self.eeg.raw._data[eeg_idx, self.eeg.tsl_resamples]
               #--- rename groups and ch names
-               self.raw.set_channel_types( { chname:ch.split('_')[0].lower() } ) # e.g. ecg eog
-               self.raw.rename_channels(   { chname:ch.replace('_',' ')      } )
+               self.meg.raw.set_channel_types( { chname:ch.split('_')[0].lower() } ) # e.g. ecg eog
+               self.meg.raw.rename_channels(   { chname:ch.replace('_',' ')      } )
                meg_ch_idx += 1
             eeg_idx+=1
 
-       # --- adjust data size to merged data block -> meg-onset and meg-end tsls
-        if self.do_adjust_size:
-           self.raw._data = self.raw._data[:, meg_onset_tsl:meg_end_tsl + 1]
+       # --- adjust data size to merged data block -> cut meg-data to meg-onset <-> meg-end tsls
+        if self.do_adjust_data_size:
+           self.meg.adjust_data_size()
 
        #--- save meeg
-        print" " + "-" * 50
-        self.meeg_fname = self.get_fif_name(raw=self.raw,extention=self.meeg_extention,update_raw_fname=True)
-        print "BVM MEEG name out: "+ self.meeg_fname
+        print"\n*" + "-" * 50
+        self.meeg_fname = self.get_fif_name(raw=self.meg.raw,extention=self.meeg_extention,update_raw_fname=True)
+        print "---> start saving MEEG data: "+ self.meeg_fname
         if self.do_save:
-           self.apply_save_mne_data(self.raw,fname=self.meeg_fname,overwrite=True)
+           self.apply_save_mne_data(self.meg.raw,fname=self.meeg_fname,overwrite=True)
         print "---> DONE merge BrainVision EEG data to MEG"
-        print" " + "-" * 50
+        print"*" + "-" * 50
         print"\n"
 
-        return self.raw,self.meeg_fname
+        return self.meeg_fname,self.meg.raw
 
 
 def __get_args():
@@ -391,14 +464,12 @@ def main(argv):
     opt, parser = __get_args()
 
     JuMEEG = JuMEG_MergeMEEG()
-    JuMEEG.meg_fname = opt.meg_fname
-    JuMEEG.eeg_fname = opt.eeg_fname
-    JuMEEG.verbose   = opt.verbose
+    JuMEEG.meg.filename = opt.meg_fname
+    JuMEEG.eeg.filename = opt.eeg_fname
+    JuMEEG.verbose      = opt.verbose
 
     if opt.run:
        JuMEEG.run()
-
-
 
 if __name__ == "__main__":
     main(sys.argv)
