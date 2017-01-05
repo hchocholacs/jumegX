@@ -148,7 +148,7 @@ def main(argv):
             if opt_dict[fif_file]['feeg']:
                feeg = str(opt_dict[fif_file]['feeg'])
                print "\n ===> Merge EEG data ->"
-               print"  --> MEG      : " + fif_file
+               print"  --> MEG: " + fif_file
 
                if opt.stage_eeg:
                    if os.path.isfile(opt.stage_eeg + '/' + feeg):
