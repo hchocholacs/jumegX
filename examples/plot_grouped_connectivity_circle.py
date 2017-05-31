@@ -22,6 +22,4 @@ np.random.seed(42)
 con = np.random.random((68, 68))
 con[con < 0.5] = 0.
 
-indices = (np.array((1, 2, 3)), np.array((5, 6, 7)))
-plot_grouped_connectivity_circle(yaml_fname, con, label_names, 
-                                 n_lines=10, colorbar=True)
+plot_grouped_connectivity_circle(yaml_fname, con, label_names, n_lines=10, colorbar=True)

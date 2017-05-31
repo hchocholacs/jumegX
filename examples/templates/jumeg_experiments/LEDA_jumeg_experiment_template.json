@@ -1,47 +1,13 @@
 {
   "info": {
-    "time": "02-03-2015  00:00:01",
+    "time": "15-01-2017  00:00:01",
     "user": "fboers",
-    "version": "20150302"
+    "version": "20171501"
   },
   "experiment": {
-    "name": "InKomp",
+    "name": "LEDA",
     "ids": [
-      109077,
-      201195,
-      203147,
-      203267,
-      203288,
-      203709,
-      203731,
-      203780,
-      203792,
-      203822,
-      203840,
-      203867,
-      203929,
-      203952,
-      203969
-    ],
-    "id_group": {
-      "norm": [
-        109077,
-        201195,
-        203147,
-        203267,
-        203288,
-        203709,
-        203731,
-        203780,
-        203792,
-        203822,
-        203840,
-        203867,
-        203929,
-        203952,
-        203969
-      ]
-    },
+         ],
     "mri": {
       "path": {
         "brain": "mrdata/iso/brain",
@@ -58,8 +24,8 @@
       }
     },
     "path": {
-      "experiment": "/data/meg_store1/exp/Chrono",
-      "stage": "/data/meg_store1/exp/Chrono",
+      "experiment": "/data/meg_store1/exp/LEDA",
+      "stage": "/data/meg_store1/exp/LEDA",
       "mne": "mne",
       "empty_room": "empty_room",
       "eeg": "eeg",
@@ -75,13 +41,26 @@
     },
     "data_preprocessing": {
       "raw": {
-        "epocher": {
-          "template_name": "InKomp",
+        "bads": {
+          "fif_extention": ".fif",
+          "do_run": false,
+          "verbose":false,
+          "save": true
+        },     
+       "epocher": {
+          "template_name": "LEDA",
           "fif_extention": ".fif",
           "do_run": true,
           "verbose": false,
           "save": true
         },
+       "meeg_merger": {
+                     "do_run": false,
+                     "verbose": false,
+                     "save": true
+        },
+
+
      "noise_reducer": {
                        "parameter": {
                                       "signals":[],
@@ -92,19 +71,20 @@
                                       "exclude_artifacts":true,
                                       "checkresults":true,
                                       "complementary_signal":false
-                                    },
-                         "fif_extention": "-raw.fif",
-                         "fif_postfix": "nr",
+                                     },
                          "reflp": 5.0,
                          "refhp": null,
                          "refnotch": [23.8,50.0,60.0],
-                         "plot":false,
+                         "return_raw":true,                                             
+                         "fif_extention": "-raw.fif",
+                         "fif_postfix": "nr",
+                         "plot":true,
                          "verbose": false,
                          "do_run": false,
-                         "save": false
+                         "save": true
                        },
 
-        "noise_covariance": {
+    "noise_covariance": {
           "filter_parameter": {
             "filter_method": "bw",
             "filter_type": "hp",
@@ -130,10 +110,10 @@
           "global_parameter": {
             "name_ecg": "ECG",
             "ecg_freq": [
-              10,
-              20
+              8,
+              16
             ],
-            "thresh_ecg": 0.4,
+            "thresh_ecg": 0.3,
             "name_eog": "EOG ver",
             "eog_freq": [
               1,
@@ -141,19 +121,19 @@
             ],
             "seg_length": 30.0,
             "shift_length": 10.0,
-            "percentile_eog": 80,
+            "percentile_eog": 70,
             "npc": null,
             "explVar": 0.95,
             "lrate": null,
-            "maxsteps": 50
+            "maxsteps": 100
           },
           "fit_parameter": {
             "name_ecg": "ECG",
             "ecg_freq": [
-              10,
-              20
+              8,
+              16
             ],
-            "thresh_ecg": 0.4,
+            "thresh_ecg": 0.3,
             "name_eog": "EOG ver",
             "eog_freq": [
               1,
@@ -164,18 +144,38 @@
             "npc": null,
             "explVar": 0.95,
             "lrate": null,
-            "maxsteps": 50,
+            "maxsteps": 100,
             "denoising": null,
             "plot_template_OA": false,
             "verbose": false
           },
-          "template_name": "LDAEP",
+          "template_name": "LEDA",
           "fif_extention": ".fif",
           "fif_postfix": "ocarta-raw",
           "verbose": false,
           "do_run": false,
           "save":true
         },
+    "filter_after_ocarta": {
+                              "filter_method": "bw",
+                              "filter_type": "bp",
+                              "fcut1": 1.0,
+                              "fcut2": 45.0,
+                              "notch": null,
+                              "notch_max": null,
+                              "order": 4,
+                              "remove_dcoffset": false,
+                              "njobs": 8,
+                              "fif_extention": "-raw.fif",
+                              "fif_postfix": "fibp1-45",
+                              "picks": null,
+                              "overwrite": true,
+                              "do_run": false,
+                              "verbose": false,
+                              "save": true
+                             },
+
+
     "events": {
           "parameter":{
                        "event_extention": ".eve",
@@ -184,8 +184,8 @@
                        "time":{"time_pre":null,"time_post":null,"baseline":null},
                        "exclude_events":{"eog_events":{"tmin":-0.4,"tmax":0.6} } },
           "fif_postfix": "evt",
-          "template_name":"InKomp",
-          "do_run": true,
+          "template_name":"LEDA",
+          "do_run": false,
           "verbose": false
         }},
     "brainresponse":{
@@ -217,7 +217,7 @@
                                 "save": true
                                },
                        "ctps": {
-                                "template_name": "InKomp",
+                                "template_name": "LEDA",
                                 "update_parameter": {
                                                       "exclude_events": {
                                                                          "eog_events": {
@@ -244,7 +244,7 @@
                                },
                        "clean":{
                                 "njobs": 8,
-                                "template_name": "InKomp",
+                                "template_name": "LEDA",
                                 "fif_extention": ".fif",
                                 "fif_postfix": "ctpsbr",
                                 "clean_global":{"save_raw":true,"save_epochs":false,"save_evoked":true},
@@ -253,8 +253,6 @@
                                 "verbose": false
                                }
                      }
-      }
-    }
- }
+      }}}
 
 

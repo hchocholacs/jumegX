@@ -1,0 +1,371 @@
+{
+  "default": {
+    "experiment": "LEDA",
+    "condition": "TEST",
+    "postfix": "test",
+    "time_pre": -0.20,
+    "time_post": 0.80,
+    "baseline": {
+      "type": "avg",
+      "channel": "stimulus",
+      "output": "onset",
+      "baseline": [
+        null,
+        0
+      ]
+    },
+    "stimulus_channel": "stimulus",
+    "response_channel": "response",
+    "marker_channel": "stimulus",
+    "marker_type": "onset",
+    "response_matching": true,
+    "response_matching_type": "hit",
+    "ctps": {
+      "time_pre": -0.50,
+      "time_post": 1.0,
+      "baseline": [
+        null,
+        0
+      ]
+    },
+    "reject": {
+      "mag": 4e-12
+    },
+    "stimulus": {
+      "events": {
+        "stim_channel": "STI 014",
+        "output": "onset",
+        "consecutive": true,
+        "min_duration": 0.002,
+        "shortest_event": 2,
+        "mask": 0
+      },
+      "and_mask": 255,
+      "system_delay_ms": 17.0,
+      "event_id": null
+    },
+    "response": {
+      "events": {
+        "stim_channel": "STI 013",
+        "output": "onset",
+        "consecutive": true,
+        "min_duration": 0.002,
+        "shortest_event": 2,
+        "mask": 0
+      },
+      "and_mask": 12,
+      "window": [
+        0.100,
+        2.90
+      ],
+      "counts": 1,
+      "system_delay_ms": 0.0,
+      "include_early_ids": null,
+      "event_id": null
+    }
+  },
+  "NSFst": {
+    "condition": "NSFst",
+    "postfix": "NSFst",
+    "marker_channel": "stimulus",
+    "stimulus": {
+      "events": {
+        "output": "onset"
+      },
+      "event_id": 17
+    },
+    "response_matching": true,
+    "response": {
+      "event_id": 8
+    }
+  },
+  "NSFrt": {
+    "condition": "NSFrt",
+    "postfix": "NSFrt",
+    "marker_channel": "response",
+    "marker_type": "rt_onset",
+    "stimulus": {
+      "events": {
+        "output": "onset"
+      },
+      "event_id": 17
+    },
+    "response_matching": true,
+    "response": {
+      "event_id": 8
+    },
+    "time_pre": -0.80,
+    "time_post": 0.10,
+    "ctps": {
+      "time_pre": -0.90,
+      "time_post": 0.20,
+      "baseline": null
+    }
+  },
+  "NSGst": {
+    "condition": "NSGst",
+    "postfix": "NSGst",
+    "marker_channel": "stimulus",
+    "stimulus": {
+      "events": {
+        "output": "onset"
+      },
+      "event_id": 18
+    },
+    "response_matching": true,
+    "response": {
+      "event_id": 8
+    }
+  },
+  "NSGrt": {
+    "condition": "NSGrt",
+    "postfix": "NSGrt",
+    "marker_channel": "response",
+    "marker_type": "rt_onset",
+    "stimulus": {
+      "events": {
+        "output": "onset"
+      },
+      "event_id": 18
+    },
+    "response_matching": true,
+    "response": {
+      "event_id": 8
+    },
+    "time_pre": -0.80,
+    "time_post": 0.10,
+    "ctps": {
+      "time_pre": -0.90,
+      "time_post": 0.20,
+      "baseline": null
+    }
+  },
+  "NDFst": {
+    "condition": "NDFst",
+    "postfix": "NDFst",
+    "marker_channel": "stimulus",
+    "stimulus": {
+      "events": {
+        "output": "onset"
+      },
+      "event_id": 25
+    },
+    "response_matching": true,
+    "response": {
+      "event_id": 8
+    }
+  },
+  "NDFrt": {
+    "condition": "NDFrt",
+    "postfix": "NDFrt",
+    "marker_channel": "response",
+    "marker_type": "rt_onset",
+    "stimulus": {
+      "events": {
+        "output": "onset"
+      },
+      "event_id": 25
+    },
+    "response_matching": true,
+    "response": {
+      "event_id": 8
+    },
+    "time_pre": -0.80,
+    "time_post": 0.10,
+    "ctps": {
+      "time_pre": -0.90,
+      "time_post": 0.20,
+      "baseline": null
+    }
+  },
+  "NDGst": {
+    "condition": "NDGst",
+    "postfix": "NDGst",
+    "marker_channel": "stimulus",
+    "stimulus": {
+      "events": {
+        "output": "onset"
+      },
+      "event_id": 26
+    },
+    "response_matching": true,
+    "response": {
+      "event_id": 8
+    }
+  },
+  "NDGrt": {
+    "condition": "NDGrt",
+    "postfix": "NDGrt",
+    "marker_channel": "response",
+    "marker_type": "rt_onset",
+    "stimulus": {
+      "events": {
+        "output": "onset"
+      },
+      "event_id": 26
+    },
+    "response_matching": true,
+    "response": {
+      "event_id": 8
+    },
+    "time_pre": -0.80,
+    "time_post": 0.10,
+    "ctps": {
+      "time_pre": -0.90,
+      "time_post": 0.20,
+      "baseline": null
+    }
+  },
+  "WSFst": {
+    "condition": "WSFst",
+    "postfix": "WSFst",
+    "marker_channel": "stimulus",
+    "stimulus": {
+      "events": {
+        "output": "onset"
+      },
+      "event_id": 21
+    },
+    "response_matching": true,
+    "response": {
+      "event_id": 4
+    }
+  },
+  "WSFrt": {
+    "condition": "WSFrt",
+    "postfix": "WSFrt",
+    "marker_channel": "response",
+    "marker_type": "rt_onset",
+    "stimulus": {
+      "events": {
+        "output": "onset"
+      },
+      "event_id": 21
+    },
+    "response_matching": true,
+    "response": {
+      "event_id": 4
+    },
+    "time_pre": -0.80,
+    "time_post": 0.10,
+    "ctps": {
+      "time_pre": -0.90,
+      "time_post": 0.20,
+      "baseline": null
+    }
+  },
+  "WSGst": {
+    "condition": "WSGst",
+    "postfix": "WSGst",
+    "marker_channel": "stimulus",
+    "stimulus": {
+      "events": {
+        "output": "onset"
+      },
+      "event_id": 22
+    },
+    "response_matching": true,
+    "response": {
+      "event_id": 4
+    }
+  },
+  "WSGrt": {
+    "condition": "WSGrt",
+    "postfix": "WSGrt",
+    "marker_channel": "response",
+    "marker_type": "rt_onset",
+    "stimulus": {
+      "events": {
+        "output": "onset"
+      },
+      "event_id": 22
+    },
+    "response_matching": true,
+    "response": {
+      "event_id": 4
+    },
+    "time_pre": -0.80,
+    "time_post": 0.10,
+    "ctps": {
+      "time_pre": -0.90,
+      "time_post": 0.20,
+      "baseline": null
+    }
+  },
+  "WDFst": {
+    "condition": "WDFst",
+    "postfix": "WDFst",
+    "marker_channel": "stimulus",
+    "stimulus": {
+      "events": {
+        "output": "onset"
+      },
+      "event_id": 29
+    },
+    "response_matching": true,
+    "response": {
+      "event_id": 4
+    }
+  },
+  "WDFrt": {
+    "condition": "WDFrt",
+    "postfix": "WDFrt",
+    "marker_channel": "response",
+    "marker_type": "rt_onset",
+    "stimulus": {
+      "events": {
+        "output": "onset"
+      },
+      "event_id": 29
+    },
+    "response_matching": true,
+    "response": {
+      "event_id": 4
+    },
+    "time_pre": -0.80,
+    "time_post": 0.10,
+    "ctps": {
+      "time_pre": -0.90,
+      "time_post": 0.20,
+      "baseline": null
+    }
+  },
+  "WDGst": {
+    "condition": "WDGst",
+    "postfix": "WDGst",
+    "marker_channel": "stimulus",
+    "stimulus": {
+      "events": {
+        "output": "onset"
+      },
+      "event_id": 30
+    },
+    "response_matching": true,
+    "response": {
+      "event_id": 4
+    }
+  },
+  "WDGrt": {
+    "condition": "WDGrt",
+    "postfix": "WDGrt",
+    "marker_channel": "response",
+    "marker_type": "rt_onset",
+    "stimulus": {
+      "events": {
+        "output": "onset"
+      },
+      "event_id": 30
+    },
+    "response_matching": true,
+    "response": {
+      "event_id": 4
+    },
+    "time_pre": -0.80,
+    "time_post": 0.10,
+    "ctps": {
+      "time_pre": -0.90,
+      "time_post": 0.20,
+      "baseline": null
+    }
+  }
+}
