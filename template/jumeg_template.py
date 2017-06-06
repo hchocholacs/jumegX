@@ -203,25 +203,23 @@ class JuMEG_Template(JuMEG_Base_Basic):
         return self.template_path + '/' + self.template_name +'_'+ self.template_postfix + self.template_suffix
     template_full_file_name = property(__get_full_template_file_name)
 
+
     def template_update_file(self):
           self.template_data = dict()
           self.__template_isUpdate = False
 
-          # print self.full_template_file_name 
           f = open( self.template_full_file_name )
-          self.template_data = json.load(f)
-
-          #--- convert unicode -utf8 to python-2.x string
-          self.template_data = _decode_dict(self.template_data)
-
-          #self.template_data = _filter_data(self.template_data)
-          f.close()
-
-          self.__template_isUpdate = True
-
-          #self.exp_obj = dict2obj( self._template_dic_yaml )
-
-          return self.template_data
+          try:
+              self.template_data = json.load(f)
+              self.template_data = _decode_dict(self.template_data)
+              f.close()
+              self.__template_isUpdate = True
+          except ValueError as e:
+              print "\n---> ERROR loading Template File: " +self.template_full_file_name 
+              print(' --> invalid json: %s' % e)
+         
+          assert self.template_data,"---> ERROR in template file format [json]\n"  
+          return 
           
     def template_get_as_obj(self):
           # return dict2obj( self._template_dic_yaml )
