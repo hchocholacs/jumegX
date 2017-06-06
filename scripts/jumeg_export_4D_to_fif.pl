@@ -6,6 +6,7 @@
 # update 08.06.2016
 # update 12.12.2016  filesize option to search & count total size to export
 # update 12.01.2017  fix bug in filesize option to search & count ...
+# update 02.06.2017  --hs_file => use export headshape or fakeHS
 #=======================================================================
 # perl script to export 4D data into fif format
 # uses jumeg file and directory convention
@@ -43,7 +44,7 @@ my $bti_suffix       = ",rfDC";
 my $fif_suffix       = "-raw.fif";
 my $fif_suffix_empty = "-empty.fif";
 my $auto_empty       = 0;
-
+my $fakehs;
 
 my $data_size        = 0.0;
 my $search_size_str  = "";
@@ -89,7 +90,8 @@ my $u = "undef";
    print "---->   -e => automatic search for empty room measurement\n";
    print "              looks for the last run in last session of the day\n";  
    print "----> -keep|-k         : if defined     : ".($keep_existing_mne_files  or $u )."\n";
-   print "---->   -k => keep existing files, no new export\n";  
+   print "---->   -k => keep existing files, no new export\n";
+   print "----> -fakeHS|fhs => use fake/dumy headshape file  : ".($fakehs or $u)."\n";
    print "----> -verbose|-v      : if defined     : ".($verbose or $u )."\n";
    print "---->   -v => more info\n";
    print"-"x60 ."\n"; 
@@ -152,6 +154,7 @@ my $unit = ( lc( shift(@a) ) or "b" );
               "verbose|v"         => \$verbose,
               "debug|d"           => \$debug,
               "keep|k"            => \$keep_existing_mne_files,
+              "fakeHS|fHS"        => \$fakehs,
               "help|h"            => \$help,
             );
 
@@ -272,9 +275,13 @@ my @check_for_empty_room_list = ();
 
         mkpath($pfif."/plots");  # include plots directory 
         
+    
      my $cmd  = "mne bti2fiff -overwrite=True -p $f -o $pfif/$fif";
         $cmd .= " -c ".$pbti."config";
-
+        if (-e $pbti.'/hs_file')
+          { $cmd.= " --head_shape=$pbti\/hs_file" }
+        elsif($fakehs){$cmd.= " --head_shape=.\/hs_file"}
+     
         print "---> CMD: $cmd\n" if ($verbose);
         system $cmd if($do_run);
         print "---> CMD: DONE export 4D/Bti data to FIF/MNE: $fif\n\n";
