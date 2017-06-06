@@ -190,12 +190,28 @@ class JuMEG_Epocher_Events(JuMEG_Epocher_HDF):
         else:
            system_delay_is_applied = False
        
+        
        #-- avoid invalid index/dimension error if last offset is none
-        div          = ev_offset[:,0] - ev_onset[:ev_offset[:,0].size,0]
         df['id']     = ev_onset[:,2]
         df['onset']  = ev_onset[:,0]
         df['offset'] = np.zeros( ev_onset[:,0].size,dtype=np.long )
-        df['offset'][:ev_offset[:,0].size] = ev_offset[:,0]
+        div = np.zeros( ev_offset[:,0].size )
+        try:
+            if ( ev_onset[:,0].size >= ev_offset[:,0].size ):
+               div = ev_offset[:,0] - ev_onset[:ev_offset[:,0].size,0]
+               df['offset'][:ev_offset[:,0].size] = ev_offset[:,0]
+        
+            else:
+               idx_max = ev_offset[:,0].size
+               div = ev_offset[:,0] - ev_onset[:idx_max,0]    
+               df['offset'][:] = ev_offset[:idx_max,0]
+        except:
+            assert "ERROR dims onset offset will not fit\n"
+            
+            print ev_onset[:,0].size
+        print ev_offset[:,0].size
+        
+        
         return df,dict( {
                          'sfreq'        : raw.info['sfreq'],
                          'duration'     :{'mean':np.rint(div.mean()),'min':div.min(),'max':div.max()},
