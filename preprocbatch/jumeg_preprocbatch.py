@@ -21,8 +21,16 @@ Created on Tue Jun  2 13:38:32 2015
 # apply_merge_meeg
 #
 #################################################################
-def apply_merge_meeg(fif_file,raw=None,eeg_fname=None,do_run=False,save=True,verbose=False): #**kwargs):
-    """
+def apply_merge_meeg(fif_file,raw=None,eeg_fname=None,do_run=False,save=True,verbose=False,**kwargs):
+    # startcode=128,
+    # meg={'stim_channel':'STI 013'},eeg={'stim_channel':'STI 014','response_shift':1000,'stim_type':'RESPONSE'} ):
+    
+    """  
+    stim_channel               :'STI 013' 
+    startcode"                 :  128     
+    brainvision_response_shift : 1000
+    brainvision_channel_type   : RESPONSE
+               
     merge brainvision eeg data into MEG-fif file
 
     RETURN:
@@ -32,7 +40,8 @@ def apply_merge_meeg(fif_file,raw=None,eeg_fname=None,do_run=False,save=True,ver
     """
     from jumeg.jumeg_merge_meeg import JuMEG_MergeMEEG
 
-    JMEEG = JuMEG_MergeMEEG()
+    JMEEG = JuMEG_MergeMEEG(**kwargs)
+    
     JMEEG.meg.filename = fif_file
     JMEEG.meg.raw      = raw
     JMEEG.eeg.filename = eeg_fname
@@ -193,13 +202,13 @@ def apply_noise_reducer_data(fname,raw=None,do_run=True,verbose=False,save=True,
           #                                          save=False, **kwargs['parameter'])
 
           raw,fname_out = noise_reducer(fname,raw=raw,reflp=reflp,refhp=refhp,verbose=verbose,save=False,**parameter)
-          parameter['detrending'] = None
+          #parameter['detrending'] = None
           nr_done = True
        if refnotch:
           for refn in refnotch:
               # raw,fname_out = noise_reducer_4raw_data(None,raw=raw,refnotch=refn,verbose=verbose,save=False,**kwargs['parameter'])
               raw, fname_out = noise_reducer(None, raw=raw, refnotch=refn, verbose=verbose, save=False,**parameter)
-              parameter['detrending'] = None
+              #parameter['detrending'] = None
           nr_done = True
   
      
