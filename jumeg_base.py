@@ -213,7 +213,9 @@ class JuMEG_Base_PickChannels(object):
          ''' call with meg=True,ref_meg=True,eeg=True,ecg=True,eog=True,emg=True,misc=True,stim=False,resp=False,exclude=None '''
          return mne.pick_types(raw.info, meg=True,ref_meg=True,eeg=True,ecg=True,eog=True,emg=True,misc=True, stim=False,resp=False)       
 
-
+     def bads(self,raw):
+         """ return raw.info[bads] """
+         return raw.info['bads']
 
 class JuMEG_Base_StringHelper(object):
     """ Helper Class to work with strings """
@@ -267,13 +269,13 @@ class JuMEG_Base_StringHelper(object):
 class JuMEG_Base_FIF_IO(JuMEG_Base_Basic,JuMEG_Base_StringHelper):
     def __init__ (self):
         super(JuMEG_Base_FIF_IO, self).__init__()
-
         
     def set_raw_filename(self,raw,v):
         if raw.info.has_key('filename'):
             raw.info['filename'] = v
         else:
-            raw._filename = [v]
+            raw._filenames = []
+            raw._filenames.append(v)
 
     def get_raw_filename(self,raw):
         if raw:
@@ -281,8 +283,8 @@ class JuMEG_Base_FIF_IO(JuMEG_Base_Basic,JuMEG_Base_StringHelper):
               return raw.info['filename']
            else:
               return raw.filenames[0]
-        return None
-          
+        return None    
+      
     def __get_from_fifname(self,v=None,f=None):
         try:
            return os.path.basename(f).split('_')[v]
@@ -329,7 +331,7 @@ class JuMEG_Base_IO(JuMEG_Base_FIF_IO):
         self.__version__  = 20160623
         self.verbose      = False
       #--- ToDo --- start implementig BV support may new CLS
-        self.brainvision_response_shift = 256
+        self.brainvision_response_shift = 1000
         self.brainvision_extention      = '.vhdr'
         
     def get_fif_name(self, fname=None, raw=None, postfix=None, extention="-raw.fif", update_raw_fname=False):
@@ -357,12 +359,11 @@ class JuMEG_Base_IO(JuMEG_Base_FIF_IO):
             if extention:
                fname += extention
 
-            if raw and update_raw_fname:
+            if update_raw_fname:
                self.set_raw_filename(raw,fname)
 
         except:
             return False
-
         return fname    
         
     def update_bad_channels(self,fname,raw=None,bads=None,preload=True,append=False,save=False,interpolate=False):
