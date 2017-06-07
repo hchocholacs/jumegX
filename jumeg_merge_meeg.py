@@ -272,7 +272,7 @@ class JuMEG_MergeMEEG(JuMEG_Base_IO):
         self.eeg.startcode      = startcode
         self.brainvision_response_shift = self.eeg.response_shift
         
-        self.DO_MERGE_EEG_TRIGGER = True
+        self.DO_MERGE_EEG_TRIGGER = False
         
        #--- output
         self.meeg_fname     = None
