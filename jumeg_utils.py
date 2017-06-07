@@ -17,6 +17,7 @@ import mne
 from mne.utils import logger
 import matplotlib.cm as cmx
 import matplotlib.colors as colors
+from sklearn.utils import check_random_state
 
 def get_files_from_list(fin):
     ''' Return string of file or files as iterables lists '''
@@ -148,7 +149,7 @@ def mark_bads_batch(subject_list, subjects_dir=None):
                 raw = mne.io.Raw(dirname + '/' + raw_fname, preload=True)
                 raw.plot(block=True)
                 print 'The bad channels marked are %s ' % (raw.info['bads'])
-                save_fname = dirname + '/' + raw.info['filename'].split('/')[-1].split('-raw.fif')[0] + '_bcc-raw.fif'
+                save_fname = dirname + '/' + raw.filenames[0].split('/')[-1].split('-raw.fif')[0] + '_bcc-raw.fif'
                 raw.save(save_fname)
     return
 
@@ -215,14 +216,14 @@ def chop_raw_data(raw, start_time=60.0, stop_time=360.0, save=True, return_chop=
         raw = mne.io.Raw(raw, preload=True)
     # Check if data is longer than required chop duration.
     if (raw.n_times / (raw.info['sfreq'])) < (stop_time + start_time):
-        logger.info("The data is not long enough for file %s.") % (raw.info['filename'])
+        logger.info("The data is not long enough for file %s.") % (raw.filenames[0])
         return
     # Obtain indexes for start and stop times.
     assert start_time < stop_time, "Start time is greater than stop time."
     crop = raw.copy().crop(tmin=start_time, tmax=stop_time)
     dur = int((stop_time - start_time) / 60)
     if save:
-        crop.save(crop.info['filename'].split('-raw.fif')[0] + ',' + str(dur) + 'm-raw.fif')
+        crop.save(crop.filenames[0].split('-raw.fif')[0] + ',' + str(dur) + 'm-raw.fif')
     raw.close()
     if return_chop:
          return crop
@@ -324,7 +325,6 @@ def make_surrogates_epochs(epochs, check_pdf=False, random_state=None):
     ------
     Surrogate Epochs object
     '''
-    from sklearn.utils import check_random_state
     rng = check_random_state(random_state)
 
     surrogate = epochs.copy()
@@ -358,6 +358,8 @@ def make_fftsurr_epochs(epochs, check_power=False):
     '''
     from matplotlib.mlab import fftsurr
 
+    if not epochs.preload:
+        epochs.load_data()
     surrogate = epochs.copy()
     surr = surrogate.get_data()
     for trial in range(len(surrogate)):
@@ -380,13 +382,15 @@ def make_phase_shuffled_surrogates_epochs(epochs, check_power=False):
 
     Parameters
     ----------
-    Epochs Object.
+    Epochs object.
 
     Output
     ------
-    Surrogate Epochs object
+    Surrogate Epochs object.
     '''
 
+    if not epochs.preload:
+        epochs.load_data()
     surrogate = epochs.copy()
     surr = surrogate.get_data()
     for trial in range(len(surrogate)):
@@ -394,15 +398,49 @@ def make_phase_shuffled_surrogates_epochs(epochs, check_power=False):
             surr[trial, channel, :] = randomize_phase(surr[trial, channel, :])
     surrogate._data = surr
     if check_power:
-        from mne.time_frequency import compute_epochs_psd
-        ps1, _ = compute_epochs_psd(epochs, epochs.picks)
-        ps2, _ = compute_epochs_psd(surrogate, surrogate.picks)
+        from mne.time_frequency import psd_welch
+        ps1, _ = psd_welch(epochs, epochs.picks)
+        ps2, _ = pas_welch(surrogate, surrogate.picks)
         # np.array_equal does not pass the assertion, due to minor changes in power.
         assert np.allclose(ps1, ps2), 'The power content does not match. Error.'
 
     return surrogate
 
 
+def make_phase_shuffled_stcs_gen(stcs, random_state=None):
+    '''
+    Make surrogate STCs using sklearn. Destroy phase information in each trial by randomization.
+    The phase values are randomized in the frequency domain.
+
+    Parameters
+    ----------
+    STCs object or generator.
+
+    Output
+    ------
+    Surrrogate STCs object.
+
+    TODO
+    ----
+    Make the function accept any type of STC (not only generator)
+    and shuffle it.
+    '''
+
+    for stc in stcs:
+        print 'Computing surrogate for stc..'
+        surr_stc = stc.copy()
+        data = np.asarray(surr_stc.data)
+
+        # destroy signal across time axis in freq domain
+        data_freq = np.fft.rfft(data, axis=1)
+        rng = check_random_state(random_state)
+        data_freq = np.abs(data_freq) * np.exp(1j * rng.random_sample(data_freq.shape) * 2 * np.pi)
+        surr_stc._data = np.fft.irfft(data_freq, data.shape[1], axis=1)
+        assert not np.array_equal(stc.data, surr_stc.data), 'Surrogates incorrectly computed !'
+        assert not np.array_equal(stc._data, surr_stc._data), 'Surrogates incorrectly computed !'
+        del data, data_freq, rng
+        # return a generator
+        yield surr_stc
 
 #######################################################
 #                                                     #
@@ -994,7 +1032,6 @@ def randomize_phase(data, random_state=None):
         plot(y), axis([0,1000,-3,3])
         plt.show()
     '''
-    from sklearn.utils import check_random_state
     data = np.asarray(data)
     data_freq = np.fft.rfft(data, axis=0)
     rng = check_random_state(random_state)

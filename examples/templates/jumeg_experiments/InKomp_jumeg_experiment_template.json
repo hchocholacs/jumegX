@@ -128,13 +128,13 @@
         },
     "ocarta": {
           "global_parameter": {
-            "name_ecg": "ECG 001",
+            "name_ecg": "ECG",
             "ecg_freq": [
               10,
               20
             ],
             "thresh_ecg": 0.4,
-            "name_eog": "EOG 002",
+            "name_eog": "EOG ver",
             "eog_freq": [
               1,
               10
@@ -148,13 +148,13 @@
             "maxsteps": 50
           },
           "fit_parameter": {
-            "name_ecg": "ECG 001",
+            "name_ecg": "ECG",
             "ecg_freq": [
               10,
               20
             ],
             "thresh_ecg": 0.4,
-            "name_eog": "EOG 002",
+            "name_eog": "EOG ver",
             "eog_freq": [
               1,
               10
@@ -169,7 +169,7 @@
             "plot_template_OA": false,
             "verbose": false
           },
-          "template_name": "InKomp",
+          "template_name": "LDAEP",
           "fif_extention": ".fif",
           "fif_postfix": "ocarta-raw",
           "verbose": false,

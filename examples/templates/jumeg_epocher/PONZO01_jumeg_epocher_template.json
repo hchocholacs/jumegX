@@ -1,0 +1,80 @@
+{
+  "default": {
+    "experiment":"PONZO01",
+    "condition":"TEST",
+    "postfix":"test",
+    "time_pre":-0.20,
+    "time_post":0.80,
+    "baseline": {"type":"avg","channel":"stimulus","output":"onset","baseline": [null,0]},
+    "stimulus_channel":"stimulus",
+    "response_channel":"response",
+    "marker_channel":"response",
+    "marker_type":"onset",
+    "response_matching":true,
+    "response_matching_type":"hit",
+    "ctps": {"time_pre":-0.50,"time_post": 1.0,"baseline": [null,0]},
+    "reject": {"mag":4e-12},
+    "stimulus": {
+      "events": {
+        "stim_channel": "STI 014",
+        "output": "onset",
+        "consecutive": true,
+        "min_duration": 0.001,
+        "shortest_event": 1,
+        "mask": 0
+      },
+      "and_mask": 255,
+      "system_delay_ms": 0.0,
+      "event_id": null
+    },
+    "response": {
+      "events": {
+        "stim_channel": "STI 013",
+        "output": "onset",
+        "consecutive": true,
+        "min_duration": 0.002,
+        "shortest_event": 2,
+        "mask": 0
+      },
+      "and_mask": 256,
+      "window": [0.0,0.2],
+      "counts": 1,
+      "system_delay_ms": 0.0,
+      "include_early_ids": null,
+      "event_id": 256
+    }
+  },
+"C1": {
+    "condition": "C1",
+    "postfix": "C1",
+    "stimulus": { "events": { "output": "onset" }, "event_id": 1 }
+     },
+"C2": {
+    "condition": "C2",
+    "postfix": "C2",
+    "stimulus": { "events": { "output": "onset" }, "event_id": 2 }
+    },
+"C3": {
+    "condition": "C3",
+    "postfix": "C3",
+    "stimulus": { "events": { "output": "onset" }, "event_id": 3 }
+    },
+"C4": {
+    "condition": "C4",
+    "postfix": "C4",
+    "stimulus": { "events": { "output": "onset" }, "event_id": 4 }
+    },
+"C5": {
+    "condition": "C5",
+    "postfix": "C5",
+    "stimulus": { "events": { "output": "onset" }, "event_id": 5 }
+    },
+"C6": {
+    "condition": "C6",
+    "postfix": "C6",
+    "stimulus": { "events": { "output": "onset" }, "event_id": 6 }
+    }
+
+
+}
+      

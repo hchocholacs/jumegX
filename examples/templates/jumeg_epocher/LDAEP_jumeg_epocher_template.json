@@ -1,0 +1,95 @@
+{
+"default":{
+           "experiment"       : "LDAEP",
+           "condition"        : "TEST",
+           "postfix"          : "test",
+           "time_pre"         : -0.20,
+           "time_post"        :  0.80,
+           "baseline"         : [null,0],
+           "stimulus_channel" : "stimulus",
+           "response_channel" : "response",
+           "marker_channel"   : "stimulus",
+           "marker_type"      : "onset",
+           "response_matching": false,
+           "response_matching_type": "hit",
+           "ctps"             : {"time_pre":-0.50,"time_post":2.0,"baseline":[null,0]},
+           "reject"           : {"mag": 4e-12},
+           "stimulus":{
+                       "events":{
+                                  "stim_channel"   : "STI 014",
+                                  "output"         : "onset",
+                                  "consecutive"    : true,
+                                  "min_duration"   : 0.002,
+                                  "shortest_event" : 2,
+                                  "mask"           : 0
+                                 },
+                        "and_mask"        : 255,
+                        "system_delay_ms" : 20.0,
+                        "event_id"        : null
+                       },
+
+           "response":{
+                        "events":{
+                                  "stim_channel"   : "STI 013",
+                                  "output"         : "onset",
+                                  "consecutive"    : true,
+                                  "min_duration"   : 0.002,
+                                  "shortest_event" : 2,
+                                  "mask"           : 0
+                                 },
+                        "and_mask"             : 72,
+                        "window"               : [0.10,1.70],
+                        "counts"               : 1,
+                        "system_delay_ms"      : 0.0,
+                        "include_early_ids"    : null,
+                        "event_id"             : null
+                       }
+          },
+
+"db10":{
+         "condition" : "db10",
+         "postfix"   : "db10",
+         "stimulus"  : {"events":{"output": "onset"},"event_id":11}
+       },
+
+"db20":{
+         "condition" : "db20",
+         "postfix"   : "db20",
+         "stimulus"  : {"events":{"output": "onset"},"event_id":21}
+       },
+
+"db30":{
+         "condition" : "db30",
+         "postfix"   : "db30",
+         "stimulus"  : {"events":{"output": "onset"},"event_id":31}
+       },
+
+"db40":{
+         "condition" : "db40",
+         "postfix"   : "db40",
+         "stimulus"  : {"events":{"output": "onset"},"event_id":41}
+       },
+
+"db50":{
+         "condition" : "db50",
+         "postfix"   : "db50",
+         "stimulus"  : {"events":{"output": "onset"},"event_id":51}
+       },
+
+"db60":{
+         "condition" : "db60",
+         "postfix"   : "db60",
+         "stimulus"  : {"events":{"output": "onset"},"event_id":61}
+       },
+
+"db70":{
+         "condition" : "db70",
+         "postfix"   : "db70",
+         "stimulus"  : {"events":{"output": "onset"},"event_id":71}
+       },
+"db80":{
+         "condition" : "db80",
+         "postfix"   : "db80",
+         "stimulus"  : {"events":{"output": "onset"},"event_id":81}
+       }
+}

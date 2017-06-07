@@ -11,12 +11,12 @@ import numpy as np
 import matplotlib.pylab as pl
 import mne
 
-from jumeg.jumeg_base import JuMEG_Base
+from jumeg.jumeg_base import JuMEG_Base_IO
 
 
-class JuMEG_Plot(JuMEG_Base):
+class JuMEG_PPB_Plot(JuMEG_Base_IO):
     def __init__ (self,raw=None):
-        super(JuMEG_Plot, self).__init__()
+        super(JuMEG_PPB_Plot, self).__init__()
         self.raw = raw
     
         self.dpi = 100
@@ -39,10 +39,11 @@ class JuMEG_Plot(JuMEG_Base):
         events, rt mean median min max        
         '''
         name = 'test'
-        
+        subject_id = name
         if fname:
            fout_path = os.path.dirname(fname)
            name      = os.path.splitext( os.path.basename(fname) )[0]
+           subject_id = name.split('_')[0]
         else:
            name      = "test.png"
            fout_path = "."
@@ -60,7 +61,7 @@ class JuMEG_Plot(JuMEG_Base):
         pl.title(name)
        #--- meg
         pl.subplot(311)
-        picks = self.pick_meg_nobads(ep)
+        picks = self.picks.meg_nobads(ep)
         avg   = ep.average(picks=picks) 
         avg.data *= info['meg']['scale']
         t0,t1=avg.times.min(), avg.times.max() 
@@ -71,7 +72,7 @@ class JuMEG_Plot(JuMEG_Base):
         #pl.xlabel('[s]')
         pl.ylabel('['+ info['meg']['unit']+ ']')
         
-        t='Evoked '
+        t= subject_id +' Evoked '
         if condition:
            t +=' '+condition
         if ep.info['bads']:         
@@ -85,7 +86,7 @@ class JuMEG_Plot(JuMEG_Base):
          
        #--- ecg eog        
         pl.subplot(312)
-        picks  = self.pick_ecg_eog(ep)
+        picks  = self.picks.ecg_eog(ep)
         labels =[ ep.info['ch_names'][x] for x in picks]
         avg    = ep.average(picks=picks) 
         avg.data *= info['eeg']['scale']
@@ -99,7 +100,7 @@ class JuMEG_Plot(JuMEG_Base):
     
        #--- stim        
         pl.subplot(313)
-        picks = self.pick_stim_response(ep) 
+        picks = self.picks.stim_response(ep) 
         labels =[ ep.info['ch_names'][x] for x in picks]    
         labels[0] += '  Evts: %d Id: %d' %(ep.events.shape[0],ep.events[0,2]) 
         avg   = ep.average(picks=picks) 
@@ -132,4 +133,4 @@ class JuMEG_Plot(JuMEG_Base):
 # call mne.io.constant.FIFF 
 # returns 'FIFF_UNIT_V': 107,
 
-jumeg_4raw_data_plot = JuMEG_Plot()
+jumeg_preprocbatch_plot = JuMEG_PPB_Plot()
